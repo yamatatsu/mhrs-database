@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MHRS Database</title>
+    <script>
+      // GitHub Pages has no SPA fallback, so it serves this page (with a 404
+      // status) for any unknown path. Remember the requested path and bounce
+      // back to the app root; `index.html` restores the URL before the router
+      // initializes. Keep `base` in sync with `base` in vite.config.ts.
+      (function () {
+        var base = "/mhrs-database/";
+        var path = window.location.pathname;
+        var rest = path.startsWith(base) ? path.slice(base.length) : "";
+        window.sessionStorage.setItem(
+          "mhrs:redirect",
+          rest + window.location.search + window.location.hash,
+        );
+        window.location.replace(base);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

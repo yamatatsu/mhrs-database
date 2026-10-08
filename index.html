@@ -1,13 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mhrs-database</title>
+    <title>MHRS Database</title>
+    <script>
+      // GitHub Pages serves `404.html` for unknown paths. That page stores the
+      // requested path in sessionStorage and redirects to the app root, so we
+      // restore the real URL here before the router initializes.
+      (function () {
+        var redirect = window.sessionStorage.getItem("mhrs:redirect");
+        if (redirect) {
+          window.sessionStorage.removeItem("mhrs:redirect");
+          window.history.replaceState(null, "", "%BASE_URL%" + redirect.replace(/^\//, ""));
+        }
+      })();
+    </script>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
