@@ -72,11 +72,13 @@ shared/  → ビジネスロジックを持たない基盤（UI キット、ユ�
 
 - `src/app/routes/` — TanStack Router のファイルベースルート（`routesDirectory`）。
   `src/app/routeTree.gen.ts` は生成物なので編集しないこと。
-- `src/app/layouts/` — グローバルなヘッダー/サイドバーのレイアウト。
 - `src/app/routing/` — ルーターインスタンスと `RouterProvider`。
+- `src/app/config/` — アプリ固有の設定（`navigation.ts`: ナビ定義、`site.ts`:
+  サイトタイトル）。これらは `shared/ui` のレイアウトに props で注入する。
 - `src/app/styles/global.css` — Tailwind のエントリと shadcn のテーマトークン。
 - `src/pages/<page>/ui/` — ページコンポーネント。
-- `src/shared/ui/` — shadcn コンポーネント（CLI がここに生成）。
+- `src/shared/ui/` — shadcn コンポーネント（CLI がここに生成）と、アプリ非依存の
+  レイアウト UI（`header.tsx`、`sidebar.tsx`）。`Sidebar` はナビ項目を props で受ける。
 - `src/shared/lib/` — 共有ユーティリティ。
 
 ## GitHub Pages

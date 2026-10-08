@@ -1,11 +1,15 @@
-import { Link } from "@tanstack/react-router";
-import { navigation } from "./navigation";
+import { Link, type LinkProps } from "@tanstack/react-router";
 
-export function Sidebar() {
+export interface SidebarItem {
+  readonly label: string;
+  readonly to: NonNullable<LinkProps["to"]>;
+}
+
+export function Sidebar({ items }: { items: readonly SidebarItem[] }) {
   return (
     <aside className="w-56 shrink-0 border-r">
       <nav className="flex flex-col gap-1 p-2">
-        {navigation.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.to}
             to={item.to}
