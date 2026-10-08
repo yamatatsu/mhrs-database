@@ -33,6 +33,9 @@ jobs:
       - name: Check FSD architecture
         run: vp run fsd
 
+      - name: Check unused code
+        run: vp run knip
+
       - name: Check
         run: vp check
 

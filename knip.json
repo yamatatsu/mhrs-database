@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/{index,cli,main}.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+    "steiger.config.ts",
+    "src/shared/ui/**/*.{ts,tsx}"
+  ],
+  "tanstack-router": {
+    "entry": ["src/app/routeTree.gen.ts"]
+  },
+  "ignoreExportsUsedInFile": true,
+  "ignore": ["src/shared/lib/**"],
+  "ignoreDependencies": ["lucide-react"]
+}

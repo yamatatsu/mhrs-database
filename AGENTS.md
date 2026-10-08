@@ -47,6 +47,7 @@ release. Add a tool name to select part of the graph. For example, run
 - `vp build` — 本番ビルド（`tsc` も実行する場合は `vp run build`）
 - `vp check` — フォーマット・lint・型チェック
 - `vp run fsd` — FSD リンター（Steiger）を実行
+- `vp run knip` — 未使用ファイル・依存・export を検出（knip）
 - `pnpm dlx shadcn@latest add <component>` — shadcn コンポーネントを追加
 
 ## アーキテクチャ（FSD）
