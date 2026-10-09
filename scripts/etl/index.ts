@@ -13,7 +13,8 @@ import type { DatasetName, DatasetOutput, Manifest } from "./types.ts";
  *   vp run etl
  */
 async function main(): Promise<void> {
-  const raw = await fetchMhrice();
+  const refresh = process.argv.includes("--refresh") || process.env.MHRICE_REFRESH === "1";
+  const raw = await fetchMhrice({ refresh });
   console.log(`loaded ${Object.keys(raw).length} top-level keys`);
 
   await mkdir(OUTPUT_DIR, { recursive: true });
