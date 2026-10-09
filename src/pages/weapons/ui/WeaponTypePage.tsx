@@ -1,0 +1,47 @@
+import type { WeaponIndexItem, WeaponType } from "@/shared/lib";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui";
+
+interface WeaponTypePageProps {
+  weaponType: WeaponType;
+  items: readonly WeaponIndexItem[];
+}
+
+export function WeaponTypePage({ weaponType, items }: WeaponTypePageProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-baseline gap-2">
+        <h1 className="text-2xl font-bold">{weaponType.label}</h1>
+        <span className="text-sm text-muted-foreground">{items.length} 件</span>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16">ID</TableHead>
+            <TableHead>名前</TableHead>
+            <TableHead>系統</TableHead>
+            <TableHead className="text-right">レア度</TableHead>
+            <TableHead className="text-right">攻撃力</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell className="text-muted-foreground">{item.id}</TableCell>
+              <TableCell>
+                <span
+                  className="font-medium"
+                  style={{ paddingLeft: `${(item.path.length - 1) * 1}rem` }}
+                >
+                  {item.name}
+                </span>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{item.series ?? "—"}</TableCell>
+              <TableCell className="text-right">{item.rarity}</TableCell>
+              <TableCell className="text-right">{item.atk}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

@@ -29,8 +29,9 @@ async function main(): Promise<void> {
     const group = buckets[dataset.name] ?? {};
     for (const file of dataset.transform(group)) {
       const output = await writeDataset(file, OUTPUT_DIR);
-      outputs.push(output);
       totalBytes += output.bytes;
+      if (file.listed === false) continue;
+      outputs.push(output);
       console.log(
         `  ${output.file.padEnd(26)} keys=${String(output.keys).padStart(3)}  ` +
           `raw=${(output.rawBytes / 1e6).toFixed(2)}MB  gz=${(output.bytes / 1e6).toFixed(2)}MB`,

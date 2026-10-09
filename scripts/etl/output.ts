@@ -15,6 +15,13 @@ export async function writeDataset(file: DatasetFile, outputDir: string): Promis
     file: `${file.id}.json.gz`,
     bytes: gz.byteLength,
     rawBytes: raw.byteLength,
-    keys: Object.keys(file.data).length,
+    keys: countKeys(file.data),
   };
+}
+
+/** 配列は要素数、オブジェクトはキー数を「おおよそのデータ量」として数える。 */
+function countKeys(data: unknown): number {
+  if (Array.isArray(data)) return data.length;
+  if (data !== null && typeof data === "object") return Object.keys(data).length;
+  return 0;
 }

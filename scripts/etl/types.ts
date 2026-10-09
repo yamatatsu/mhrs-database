@@ -1,8 +1,14 @@
 /** 1 つの出力ファイル（拡張子なしの id とデータ）。 */
 export interface DatasetFile {
-  /** 出力ベース名。ディレクトリを含められる（例: "weapons/great_sword"）。 */
+  /** 出力ベース名。ディレクトリを含められる（例: "weapons/great_sword/index"）。 */
   id: string;
-  data: Record<string, unknown>;
+  /** 出力する JSON 値。配列も可（武器の一覧インデックス等）。 */
+  data: unknown;
+  /**
+   * manifest.json に記録するか（既定 true）。
+   * 武器 1 件ごとの詳細など大量に生成するファイルは false にして manifest を肥大化させない。
+   */
+  listed?: boolean;
 }
 
 /**

@@ -4,18 +4,29 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "./sidebar";
 
-export interface SidebarItem {
+/** リンク可能なナビ項目。TanStack Router の Link にそのまま渡せる。 */
+export type SidebarLink = LinkProps & { readonly label: string };
+
+/** リンクではないカテゴリ。子リンクをまとめる見出し。 */
+export interface SidebarCategory {
   readonly label: string;
-  readonly to: NonNullable<LinkProps["to"]>;
+  readonly items: readonly SidebarLink[];
 }
 
-export function AppSidebar({ title, items }: { title: string; items: readonly SidebarItem[] }) {
+export type SidebarEntry = SidebarLink | SidebarCategory;
+
+function isCategory(entry: SidebarEntry): entry is SidebarCategory {
+  return "items" in entry;
+}
+
+export function AppSidebar({ title, items }: { title: string; items: readonly SidebarEntry[] }) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -26,22 +37,42 @@ export function AppSidebar({ title, items }: { title: string; items: readonly Si
         </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton asChild>
-                    <Link to={item.to} activeProps={{ "data-active": true }}>
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {items.map((entry) =>
+          isCategory(entry) ? (
+            <SidebarGroup key={entry.label}>
+              <SidebarGroupLabel>{entry.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {entry.items.map((link) => (
+                    <SidebarLinkItem key={link.label} link={link} />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <SidebarGroup key={entry.label}>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarLinkItem link={entry} />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ),
+        )}
       </SidebarContent>
     </Sidebar>
+  );
+}
+
+function SidebarLinkItem({ link }: { link: SidebarLink }) {
+  const { label, ...linkProps } = link;
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <Link {...linkProps} activeProps={{ "data-active": true }}>
+          <span>{label}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

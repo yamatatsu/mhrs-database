@@ -1,1 +1,1 @@
-export { WeaponsPage } from "./ui/WeaponsPage";
+export { WeaponTypePage } from "./ui/WeaponTypePage";

@@ -1,4 +1,4 @@
-import type { DatasetData, Manifest } from "./types";
+import type { DatasetData } from "./types";
 
 const BASE_URL = import.meta.env.BASE_URL;
 
@@ -42,13 +42,4 @@ export function loadDataset<T = DatasetData>(id: string): Promise<T> {
     datasetCache.set(url, promise);
   }
   return promise as Promise<T>;
-}
-
-/** 生成物のメタ情報（サイズ・生成時刻など）を取得する。 */
-export async function loadManifest(): Promise<Manifest> {
-  const response = await fetch(`${BASE_URL}data/manifest.json`);
-  if (!response.ok) {
-    throw new Error(`failed to fetch manifest: ${response.status} ${response.statusText}`);
-  }
-  return (await response.json()) as Manifest;
 }
