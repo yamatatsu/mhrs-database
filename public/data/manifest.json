@@ -1,0 +1,41 @@
+{
+  "source": "https://mhrise.mhrice.info/mhrice.json",
+  "generatedAt": "2026-10-09T00:01:01.648Z",
+  "datasets": [
+    {
+      "name": "weapons",
+      "file": "weapons.json.gz",
+      "bytes": 726775,
+      "rawBytes": 6990508,
+      "keys": 20
+    },
+    {
+      "name": "armor_skills",
+      "file": "armor_skills.json.gz",
+      "bytes": 275688,
+      "rawBytes": 3613285,
+      "keys": 50
+    },
+    {
+      "name": "items",
+      "file": "items.json.gz",
+      "bytes": 200739,
+      "rawBytes": 1739930,
+      "keys": 19
+    },
+    {
+      "name": "monsters",
+      "file": "monsters.json.gz",
+      "bytes": 743464,
+      "rawBytes": 12038401,
+      "keys": 20
+    },
+    {
+      "name": "quests",
+      "file": "quests.json.gz",
+      "bytes": 332099,
+      "rawBytes": 3906827,
+      "keys": 37
+    }
+  ]
+}

@@ -7,6 +7,7 @@
     "dev": "vp dev",
     "build": "tsc && vp build",
     "preview": "vp preview",
+    "etl": "node scripts/etl/index.ts",
     "fsd": "steiger ./src",
     "knip": "knip",
     "prepare": "vp config"
