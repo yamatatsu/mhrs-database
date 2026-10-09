@@ -1,6 +1,6 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-09T12:57:03.714Z",
+  "generatedAt": "2026-10-09T13:57:59.388Z",
   "datasets": [
     {
       "id": "weapons/great_sword/row",
@@ -82,8 +82,8 @@
     {
       "id": "weapons/horn/index",
       "file": "weapons/horn/index.json.gz",
-      "bytes": 9014,
-      "rawBytes": 64916,
+      "bytes": 10584,
+      "rawBytes": 99897,
       "keys": 279
     },
     {

@@ -53,6 +53,8 @@ const WEAPON_TYPES: Record<string, WeaponTypeConfig> = {
 const NAME_RE = /^W_\w+_(\d+)_Name(?:_MR)?$/;
 /** 説明文マスタの name 列（W_<武器種>_<id>_Explain）から武器 id を抽出する。 */
 const EXPLAIN_RE = /^W_\w+_(\d+)_Explain(?:_MR)?$/;
+/** 狩猟笛の旋律マスタの name 列（Horn_UniqueParam_<id>_Name）から旋律 id を抽出する。 */
+const MELODY_NAME_RE = /^Horn_UniqueParam_(\d+)_Name$/;
 
 /**
  * タグ付き union（キーが 1 つだけのオブジェクト）を値へ開く際に認識するキー。
@@ -80,7 +82,8 @@ export const weapons: Dataset = {
 /**
  * 武器カテゴリは武器種ごとにディレクトリを切り、次のファイルを出力する。
  * - `weapons/<武器種>/row`: 元の（ゲーム寄りの）構造。参考・再処理用。
- * - `weapons/<武器種>/index`: 一覧用の軽量インデックス（id / 名前 / レア度 / 攻撃力 / 属性）。
+ * - `weapons/<武器種>/index`: 一覧用の軽量インデックス（id / 名前 / レア度 / 攻撃力 / 属性 /
+ *   切れ味 / 武器種固有フィールド）。狩猟笛は旋律（`melodies`）もここに join する。
  * - `weapons/<武器種>/<武器 id>`: 武器 1 件ごとの非正規化レコード
  *   （base_data の入れ子をフラット化し、名称・説明・レシピ・派生ツリーを join、enum を正規化済み）。
  */
@@ -116,6 +119,8 @@ function buildFiles(group: Record<string, unknown>): DatasetFile[] {
 /** 一覧用インデックス（軽量）。武器名ページはこれだけを読む。 */
 function buildIndex(data: Record<string, unknown>): unknown[] {
   const names = buildEntryNameMap(data, ["name", "name_mr"], NAME_RE);
+  // 狩猟笛の旋律マスタ（melody / melody_mr）。他武器種では空マップになる。
+  const melodyNames = buildEntryNameMap(data, ["melody", "melody_mr"], MELODY_NAME_RE);
   const tree = buildTreeIndex(data);
 
   const items = weaponRecords(data).flatMap((record) => {
@@ -123,26 +128,31 @@ function buildIndex(data: Record<string, unknown>): unknown[] {
     if (id === undefined) return [];
     const name = names.get(id);
     if (name === undefined) return [];
+    const base = {
+      id,
+      name,
+      rarity: asNumber(record.rare_type) ?? 0,
+      atk: asNumber(record.atk) ?? 0,
+      // 会心率（負値あり）。
+      critical_rate: asNumber(record.critical_rate) ?? 0,
+      // 属性は武器種ごとに個数が異なる（双剣はメイン + サブの 2 属性）。
+      // 将来のスキーマ変更に耐えるよう、固定フィールドではなく配列で持つ。
+      elements: weaponElements(record),
+      // 切れ味（赤 / 橙 / 黄 / 緑 / 青 / 白 / 紫）。弓・ガンナーは空配列。
+      sharpness_val_list: numberList(record.sharpness_val_list),
+      // 匠による切れ味上昇分。現状は一覧では未使用（データのみ保持）。
+      takumi_val_list: numberList(record.takumi_val_list),
+      // 根 → 自身の weapon id パス（表示・親子・インデント用）。
+      path: tree.pathById.get(id) ?? [id],
+      // 兄弟順ベースの前順ソートキー（既定ソート用）。
+      sort: treeSort(tree, id),
+    };
+
+    // 狩猟笛の旋律（`horn_melody_type_list` は狩猟笛のレコードにのみ存在する）。
+    // 一覧が index だけで旋律を表示できるよう、名称まで解決して join する（data.md §5.4）。
+    const melodyIds = asArray(record.horn_melody_type_list);
     return [
-      {
-        id,
-        name,
-        rarity: asNumber(record.rare_type) ?? 0,
-        atk: asNumber(record.atk) ?? 0,
-        // 会心率（負値あり）。
-        critical_rate: asNumber(record.critical_rate) ?? 0,
-        // 属性は武器種ごとに個数が異なる（双剣はメイン + サブの 2 属性）。
-        // 将来のスキーマ変更に耐えるよう、固定フィールドではなく配列で持つ。
-        elements: weaponElements(record),
-        // 切れ味（赤 / 橙 / 黄 / 緑 / 青 / 白 / 紫）。弓・ガンナーは空配列。
-        sharpness_val_list: numberList(record.sharpness_val_list),
-        // 匠による切れ味上昇分。現状は一覧では未使用（データのみ保持）。
-        takumi_val_list: numberList(record.takumi_val_list),
-        // 根 → 自身の weapon id パス（表示・親子・インデント用）。
-        path: tree.pathById.get(id) ?? [id],
-        // 兄弟順ベースの前順ソートキー（既定ソート用）。
-        sort: treeSort(tree, id),
-      },
+      melodyIds.length > 0 ? { ...base, melodies: weaponMelodies(melodyIds, melodyNames) } : base,
     ];
   });
 
@@ -378,6 +388,26 @@ function weaponElements(record: Record<string, unknown>): WeaponElement[] {
 /** 数値配列を安全に取り出す（非数値は 0、配列以外は空配列）。 */
 function numberList(value: unknown): number[] {
   return asArray(value).map((item) => asNumber(item) ?? 0);
+}
+
+/** 一覧インデックスに載せる狩猟笛の旋律 1 件。 */
+interface WeaponMelody {
+  /** 旋律 id（`Horn_UniqueParam_<id>` の id）。 */
+  id: number;
+  /** 旋律名（日本語）。 */
+  name: string;
+}
+
+/**
+ * 旋律 id 配列を `{ id, name }[]` に解決する。
+ * マスタに無い id は `#<id>` にフォールバックして欠落を可視化する。
+ */
+function weaponMelodies(ids: unknown[], names: Map<number, string>): WeaponMelody[] {
+  return ids.flatMap((value) => {
+    const id = asNumber(value);
+    if (id === undefined) return [];
+    return [{ id, name: names.get(id) ?? `#${id}` }];
+  });
 }
 
 /**

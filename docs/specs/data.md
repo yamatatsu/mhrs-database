@@ -123,6 +123,7 @@ public/data/weapons/
 | `takumi_val_list`    | number[]        | 匠による切れ味上昇分（一覧では未使用）           |
 | `path`               | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
 | `sort`               | string          | 派生ツリーの前順ソートキー（§5.7）               |
+| `melodies`           | WeaponMelody[]? | 旋律（狩猟笛のみ、§5.4.3）                       |
 
 ```json
 {
@@ -168,6 +169,40 @@ interface WeaponElement {
 - `takumi_val_list` は匠スキルによる上昇分。**現状は一覧で未使用**で、index に保持する
   のみ（将来の詳細表示用）。
 - 弓・ガンナーなど切れ味を持たない武器は空配列 `[]`。
+
+#### 5.4.3 `melodies`（狩猟笛のみ）
+
+狩猟笛のレコードは `horn_melody_type_list`（旋律 id の配列）を持つ。ETL はこの id に
+旋律マスタ（`melody` / `melody_mr`、`Horn_UniqueParam_<id>_Name`）の日本語名を join し、
+`melodies` として index に載せる。**他の武器種のレコードにはこのフィールドは存在しない。**
+
+```jsonc
+{
+  "id": 2,
+  "name": "アイアンホルンⅠ",
+  // ...
+  "melodies": [
+    { "id": 23, "name": "高周衝撃波" },
+    { "id": 20, "name": "スタミナ回復速度UP" },
+    { "id": 2, "name": "防御力UP" },
+  ],
+}
+```
+
+```ts
+interface WeaponMelody {
+  /** 旋律 id（`Horn_UniqueParam_<id>` の id）。 */
+  id: number;
+  /** 旋律名（日本語）。 */
+  name: string;
+}
+```
+
+- 一覧は index だけで旋律を表示できる（一覧ページが読むのは index のみ、§5.1）。
+- `melody`（通常）と `melody_mr`（MR 追加分）をまとめて id → 名称で解決する。
+- マスタに無い id は `#<id>` にフォールバックし、欠落を可視化する。
+- 武器種ごとの固有フィールドを index に追加する場合は、この節と同じ要領で
+  「index に載せて一覧だけで完結させる」方針を取る。
 
 ### 5.5 detail スキーマ（`weapons/<type>/<id>.json.gz`）
 
@@ -363,9 +398,17 @@ const depth = item.path.length - 1;
 - **読み込み**: `src/shared/api/client.ts` の `loadDataset(id)`
   - `id` は `public/data/` 配下の拡張子なしパス（例: `weapons/great_sword/index`）。
   - 同一 URL はメモリキャッシュ。gzip はマジックバイトで二重展開を防止。
-- **一覧表示**: `src/pages/weapons/ui/WeaponTypePage.tsx`。切れ味バーは
-  `src/pages/weapons/ui/SharpnessBar.tsx` が描画する（§5.4.2）。
-- **ルーティング**: `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType` で `index` を読み、`WeaponTypePage` に渡す。`/weapons` は先頭武器種へリダイレクト。
+- **一覧表示**: `src/shared/ui/data-table.tsx` の汎用 `DataTable`（TanStack Table v9）が
+  既存の shadcn `Table` を描画する。武器種ごとのカラムは `src/pages/weapons/ui/` に置く。
+  - `weapon-columns.tsx`: 全武器種共通のカラム（ID / 名前 / レア度 / 攻撃力 / 会心率 / 属性 / 切れ味）。
+  - `horn-columns.tsx`: 共通カラム + 狩猟笛の旋律カラム（§5.4.3）。
+  - 切れ味バーは `src/pages/weapons/ui/SharpnessBar.tsx` が描画する（§5.4.2）。
+- **読み込み（武器種ごと）**: `src/pages/weapons/api/load-weapon-list.ts` の
+  `loadWeaponList(weaponType)` が index を読み、武器種固有フィールドを型付けした
+  判別可能な union（`WeaponListData`）を返す。狩猟笛は `melodies` を join 済みの
+  `HornIndexItem` として返す。
+- **ルーティング**: `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType` で
+  `loadWeaponList` を呼び、`WeaponTypePage` に渡す。`/weapons` は先頭武器種へリダイレクト。
 
 ## 7. 変更・再生成の手順
 
