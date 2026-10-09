@@ -12,7 +12,7 @@ const EMPTY_NAMES = new Set(["", "なし", "None"]);
 export const items: Dataset = {
   name: "items",
   match: (key) => ITEMS_PREFIXES.some((prefix) => key.startsWith(prefix)),
-  transform: (group) => filterItems(baseTransform(group)),
+  transform: (group) => [{ id: "items", data: filterItems(baseTransform(group)) }],
 };
 
 /**

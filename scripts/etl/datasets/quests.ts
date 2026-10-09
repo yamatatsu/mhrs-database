@@ -23,5 +23,5 @@ export const quests: Dataset = {
   name: "quests",
   match: (key) => QUEST_PREFIXES.some((prefix) => key.startsWith(prefix)),
   // クエストはテストデータが無いため、現状は共通処理のみ。
-  transform: (group) => baseTransform(group),
+  transform: (group) => [{ id: "quests", data: baseTransform(group) }],
 };

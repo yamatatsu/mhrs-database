@@ -17,7 +17,7 @@ const ARMOR_SKILLS_PREFIXES = [
 export const armorSkills: Dataset = {
   name: "armor_skills",
   match: (key) => ARMOR_SKILLS_PREFIXES.some((prefix) => key.startsWith(prefix)),
-  transform: (group) => filterArmor(baseTransform(group)),
+  transform: (group) => [{ id: "armor_skills", data: filterArmor(baseTransform(group)) }],
 };
 
 /** 無効な防具（is_valid = false。約 260 行）を除外する。 */

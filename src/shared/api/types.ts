@@ -1,11 +1,10 @@
-/** ETL が出力するデータセット名。 */
-export type DatasetName = "weapons" | "armor_skills" | "items" | "monsters" | "quests";
-
 /** スリム化済みデータ。構造はソース（mhrice.json）を踏襲する。 */
 export type DatasetData = Record<string, unknown>;
 
 export interface ManifestDataset {
-  name: DatasetName;
+  /** 出力 id（拡張子なし）。例: "weapons/great_sword" */
+  id: string;
+  /** 出力ファイルパス。例: "weapons/great_sword.json.gz" */
   file: string;
   bytes: number;
   rawBytes: number;

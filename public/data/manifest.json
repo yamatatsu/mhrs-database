@@ -1,37 +1,135 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-09T01:03:46.307Z",
+  "generatedAt": "2026-10-09T08:13:02.242Z",
   "datasets": [
     {
-      "name": "weapons",
-      "file": "weapons.json.gz",
-      "bytes": 726775,
-      "rawBytes": 6990508,
-      "keys": 20
+      "id": "weapons/common",
+      "file": "weapons/common.json.gz",
+      "bytes": 2338,
+      "rawBytes": 10895,
+      "keys": 2
     },
     {
-      "name": "armor_skills",
+      "id": "weapons/great_sword",
+      "file": "weapons/great_sword.json.gz",
+      "bytes": 49829,
+      "rawBytes": 453990,
+      "keys": 13
+    },
+    {
+      "id": "weapons/long_sword",
+      "file": "weapons/long_sword.json.gz",
+      "bytes": 53341,
+      "rawBytes": 479889,
+      "keys": 13
+    },
+    {
+      "id": "weapons/short_sword",
+      "file": "weapons/short_sword.json.gz",
+      "bytes": 50885,
+      "rawBytes": 459542,
+      "keys": 13
+    },
+    {
+      "id": "weapons/dual_blades",
+      "file": "weapons/dual_blades.json.gz",
+      "bytes": 51640,
+      "rawBytes": 474021,
+      "keys": 13
+    },
+    {
+      "id": "weapons/hammer",
+      "file": "weapons/hammer.json.gz",
+      "bytes": 52030,
+      "rawBytes": 463338,
+      "keys": 13
+    },
+    {
+      "id": "weapons/horn",
+      "file": "weapons/horn.json.gz",
+      "bytes": 52004,
+      "rawBytes": 459602,
+      "keys": 15
+    },
+    {
+      "id": "weapons/lance",
+      "file": "weapons/lance.json.gz",
+      "bytes": 49020,
+      "rawBytes": 436963,
+      "keys": 13
+    },
+    {
+      "id": "weapons/gun_lance",
+      "file": "weapons/gun_lance.json.gz",
+      "bytes": 50373,
+      "rawBytes": 468920,
+      "keys": 13
+    },
+    {
+      "id": "weapons/slash_axe",
+      "file": "weapons/slash_axe.json.gz",
+      "bytes": 52534,
+      "rawBytes": 482527,
+      "keys": 13
+    },
+    {
+      "id": "weapons/charge_axe",
+      "file": "weapons/charge_axe.json.gz",
+      "bytes": 47256,
+      "rawBytes": 426485,
+      "keys": 13
+    },
+    {
+      "id": "weapons/insect_glaive",
+      "file": "weapons/insect_glaive.json.gz",
+      "bytes": 48445,
+      "rawBytes": 447052,
+      "keys": 13
+    },
+    {
+      "id": "weapons/bow",
+      "file": "weapons/bow.json.gz",
+      "bytes": 55254,
+      "rawBytes": 546377,
+      "keys": 13
+    },
+    {
+      "id": "weapons/light_bowgun",
+      "file": "weapons/light_bowgun.json.gz",
+      "bytes": 53184,
+      "rawBytes": 690722,
+      "keys": 13
+    },
+    {
+      "id": "weapons/heavy_bowgun",
+      "file": "weapons/heavy_bowgun.json.gz",
+      "bytes": 53305,
+      "rawBytes": 690759,
+      "keys": 13
+    },
+    {
+      "id": "armor_skills",
       "file": "armor_skills.json.gz",
       "bytes": 275688,
       "rawBytes": 3613285,
       "keys": 50
     },
     {
-      "name": "items",
+      "id": "items",
       "file": "items.json.gz",
       "bytes": 200739,
       "rawBytes": 1739930,
       "keys": 19
     },
     {
-      "name": "monsters",
+      "id": "monsters",
       "file": "monsters.json.gz",
       "bytes": 743464,
       "rawBytes": 12038401,
       "keys": 20
     },
     {
-      "name": "quests",
+      "id": "quests",
       "file": "quests.json.gz",
       "bytes": 332099,
       "rawBytes": 3906827,

@@ -1,4 +1,4 @@
-import type { DatasetData, DatasetName, Manifest } from "./types";
+import type { DatasetData, Manifest } from "./types";
 
 const BASE_URL = import.meta.env.BASE_URL;
 
@@ -30,11 +30,12 @@ async function decodeBody(arrayBuffer: ArrayBuffer): Promise<string> {
 }
 
 /**
- * カテゴリ単位のデータを取得する。初回のみ通信し、以降はキャッシュを返す。
- * 必要なページで必要なカテゴリだけを呼び出す想定。
+ * データを取得する。`id` は `public/data/` 配下の拡張子なしパス
+ * （例: "weapons/great_sword", "items"）。初回のみ通信し、以降はキャッシュを返す。
+ * 必要なページで必要な分だけを呼び出す想定。
  */
-export function loadDataset<T = DatasetData>(name: DatasetName): Promise<T> {
-  const url = `${BASE_URL}data/${name}.json.gz`;
+export function loadDataset<T = DatasetData>(id: string): Promise<T> {
+  const url = `${BASE_URL}data/${id}.json.gz`;
   let promise = datasetCache.get(url);
   if (!promise) {
     promise = fetchGzipJson<T>(url);

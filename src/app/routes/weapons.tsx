@@ -4,13 +4,17 @@ import { loadDataset, loadManifest } from "@/shared/api";
 
 export const Route = createFileRoute("/weapons")({
   loader: async () => {
-    const [data, manifest] = await Promise.all([loadDataset("weapons"), loadManifest()]);
-    return { data, manifest };
+    const [weapon, common, manifest] = await Promise.all([
+      loadDataset("weapons/great_sword"),
+      loadDataset("weapons/common"),
+      loadManifest(),
+    ]);
+    return { weapon, common, manifest };
   },
   component: WeaponsRoute,
 });
 
 function WeaponsRoute() {
-  const { data, manifest } = Route.useLoaderData();
-  return <WeaponsPage data={data} manifest={manifest} />;
+  const { weapon, common, manifest } = Route.useLoaderData();
+  return <WeaponsPage weapon={weapon} common={common} manifest={manifest} />;
 }

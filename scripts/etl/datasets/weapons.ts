@@ -1,7 +1,7 @@
 import { getEntryJa } from "../filter.ts";
 import { asArray, asNumber, isObject } from "../json.ts";
 import { baseTransform } from "../slim.ts";
-import type { Dataset } from "../types.ts";
+import type { Dataset, DatasetFile } from "../types.ts";
 
 /** 武器カテゴリが引き受けるトップレベルキー。 */
 const WEAPON_KEYS = new Set([
@@ -57,8 +57,49 @@ const NAME_RE = /^W_\w+_(\d+)_Name(?:_MR)?$/;
 export const weapons: Dataset = {
   name: "weapons",
   match: (key) => WEAPON_KEYS.has(key),
-  transform: (group) => filterWeapons(baseTransform(group)),
+  transform: (group) => buildFiles(baseTransform(group)),
 };
+
+/**
+ * 武器カテゴリは武器種ごとにファイルを分割する。
+ * - `weapons/<武器種>`: その武器種の全データ（性能・ツリー・生産素材・名称など）
+ *   ＋ その武器種に属する補助データ（百竜強化・混沌会心、horn は旋律マスタ）
+ * - `weapons/common`: 全武器種で共有するマスタ（系統名）
+ */
+function buildFiles(group: Record<string, unknown>): DatasetFile[] {
+  const files: DatasetFile[] = [{ id: "weapons/common", data: pickCommon(group) }];
+
+  for (const [weaponType, config] of Object.entries(WEAPON_TYPES)) {
+    const weapon = group[weaponType];
+    if (!isObject(weapon)) continue;
+
+    filterWeaponType(weapon, config);
+    const data: Record<string, unknown> = { ...weapon };
+
+    const buildup = filterWeaponScoped(group.hyakuryu_weapon_buildup, config.idKey);
+    if (buildup) data.hyakuryu_buildup = buildup;
+
+    const chaos = filterWeaponScoped(group.weapon_chaos_critical, config.idKey);
+    if (chaos) data.chaos_critical = chaos;
+
+    if (weaponType === "horn") {
+      data.melody = group.horn_melody;
+      data.melody_mr = group.horn_melody_mr;
+    }
+
+    files.push({ id: `weapons/${weaponType}`, data });
+  }
+
+  return files;
+}
+
+/** 全武器種で共有するマスタ。 */
+function pickCommon(group: Record<string, unknown>): Record<string, unknown> {
+  return {
+    weapon_series: group.weapon_series,
+    weapon_series_mr: group.weapon_series_mr,
+  };
+}
 
 /**
  * テスト用・未使用武器を除外する。
@@ -66,30 +107,42 @@ export const weapons: Dataset = {
  * - 攻撃力 0 の重ね着専用ダミー（ロストコード／ぬいぐるみ系）
  * 派生ツリー（tree）・生産素材（product）はインデックス参照があるため温存する。
  */
-function filterWeapons(group: Record<string, unknown>): Record<string, unknown> {
-  for (const [weaponType, config] of Object.entries(WEAPON_TYPES)) {
-    const weapon = group[weaponType];
-    if (!isObject(weapon) || !isObject(weapon.base_data)) continue;
+function filterWeaponType(weapon: Record<string, unknown>, config: WeaponTypeConfig): void {
+  if (!isObject(weapon.base_data)) return;
 
-    const nameMap = buildWeaponNameMap(weapon);
-    const baseData = weapon.base_data;
-    const keptIds = new Set<number>();
+  const nameMap = buildWeaponNameMap(weapon);
+  const baseData = weapon.base_data;
+  const keptIds = new Set<number>();
 
-    baseData.param = asArray(baseData.param).filter((row) => {
-      const id = getWeaponId(row, config);
-      if (id === undefined) return false;
-      const name = nameMap.get(id);
-      if (name === undefined || name.includes("テスト")) return false;
-      const atk = getWeaponAtk(row, config);
-      if (atk === undefined || atk <= 0) return false;
-      keptIds.add(id);
-      return true;
-    });
+  baseData.param = asArray(baseData.param).filter((row) => {
+    const id = getWeaponId(row, config);
+    if (id === undefined) return false;
+    const name = nameMap.get(id);
+    if (name === undefined || name.includes("テスト")) return false;
+    const atk = getWeaponAtk(row, config);
+    if (atk === undefined || atk <= 0) return false;
+    keptIds.add(id);
+    return true;
+  });
 
-    filterNameEntries(weapon.name, keptIds);
-    filterNameEntries(weapon.name_mr, keptIds);
-  }
-  return group;
+  filterNameEntries(weapon.name, keptIds);
+  filterNameEntries(weapon.name_mr, keptIds);
+}
+
+/**
+ * 武器単位の補助データ（百竜強化・混沌会心）を武器種で絞る。
+ * 各要素の weapon_id / weapon struct に該当武器種のキーが含まれるかで判定する。
+ */
+function filterWeaponScoped(
+  container: unknown,
+  idKey: string,
+): Record<string, unknown> | undefined {
+  if (!isObject(container)) return undefined;
+  const param = asArray(container.param).filter((row) => {
+    if (!isObject(row)) return false;
+    return Object.values(row).some((value) => isObject(value) && idKey in value);
+  });
+  return { ...container, param };
 }
 
 function buildWeaponNameMap(weapon: Record<string, unknown>): Map<number, string> {

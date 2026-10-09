@@ -19,5 +19,5 @@ export const monsters: Dataset = {
   name: "monsters",
   match: (key) => MONSTER_PREFIXES.some((prefix) => key.startsWith(prefix)),
   // #Rejected# の説明文除去は baseTransform（全カテゴリ共通）で完結する。
-  transform: (group) => baseTransform(group),
+  transform: (group) => [{ id: "monsters", data: baseTransform(group) }],
 };
