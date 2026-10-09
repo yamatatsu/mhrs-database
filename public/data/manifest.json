@@ -1,6 +1,6 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-09T12:23:06.394Z",
+  "generatedAt": "2026-10-09T12:57:03.714Z",
   "datasets": [
     {
       "id": "weapons/great_sword/row",
@@ -12,8 +12,8 @@
     {
       "id": "weapons/great_sword/index",
       "file": "weapons/great_sword/index.json.gz",
-      "bytes": 6539,
-      "rawBytes": 40385,
+      "bytes": 8879,
+      "rawBytes": 65806,
       "keys": 280
     },
     {
@@ -26,8 +26,8 @@
     {
       "id": "weapons/long_sword/index",
       "file": "weapons/long_sword/index.json.gz",
-      "bytes": 6958,
-      "rawBytes": 41837,
+      "bytes": 9572,
+      "rawBytes": 68904,
       "keys": 298
     },
     {
@@ -40,8 +40,8 @@
     {
       "id": "weapons/short_sword/index",
       "file": "weapons/short_sword/index.json.gz",
-      "bytes": 6727,
-      "rawBytes": 40255,
+      "bytes": 9107,
+      "rawBytes": 66061,
       "keys": 284
     },
     {
@@ -54,8 +54,8 @@
     {
       "id": "weapons/dual_blades/index",
       "file": "weapons/dual_blades/index.json.gz",
-      "bytes": 6850,
-      "rawBytes": 40931,
+      "bytes": 9305,
+      "rawBytes": 66721,
       "keys": 284
     },
     {
@@ -68,8 +68,8 @@
     {
       "id": "weapons/hammer/index",
       "file": "weapons/hammer/index.json.gz",
-      "bytes": 6851,
-      "rawBytes": 41467,
+      "bytes": 9400,
+      "rawBytes": 67985,
       "keys": 292
     },
     {
@@ -82,8 +82,8 @@
     {
       "id": "weapons/horn/index",
       "file": "weapons/horn/index.json.gz",
-      "bytes": 6622,
-      "rawBytes": 39578,
+      "bytes": 9014,
+      "rawBytes": 64916,
       "keys": 279
     },
     {
@@ -96,8 +96,8 @@
     {
       "id": "weapons/lance/index",
       "file": "weapons/lance/index.json.gz",
-      "bytes": 6420,
-      "rawBytes": 39171,
+      "bytes": 8746,
+      "rawBytes": 64336,
       "keys": 277
     },
     {
@@ -110,8 +110,8 @@
     {
       "id": "weapons/gun_lance/index",
       "file": "weapons/gun_lance/index.json.gz",
-      "bytes": 6611,
-      "rawBytes": 40506,
+      "bytes": 9050,
+      "rawBytes": 66123,
       "keys": 282
     },
     {
@@ -124,8 +124,8 @@
     {
       "id": "weapons/slash_axe/index",
       "file": "weapons/slash_axe/index.json.gz",
-      "bytes": 6859,
-      "rawBytes": 41760,
+      "bytes": 9326,
+      "rawBytes": 68082,
       "keys": 290
     },
     {
@@ -138,8 +138,8 @@
     {
       "id": "weapons/charge_axe/index",
       "file": "weapons/charge_axe/index.json.gz",
-      "bytes": 6268,
-      "rawBytes": 37552,
+      "bytes": 8547,
+      "rawBytes": 61229,
       "keys": 260
     },
     {
@@ -152,8 +152,8 @@
     {
       "id": "weapons/insect_glaive/index",
       "file": "weapons/insect_glaive/index.json.gz",
-      "bytes": 6389,
-      "rawBytes": 38730,
+      "bytes": 8621,
+      "rawBytes": 63253,
       "keys": 270
     },
     {
@@ -166,8 +166,8 @@
     {
       "id": "weapons/bow/index",
       "file": "weapons/bow/index.json.gz",
-      "bytes": 7176,
-      "rawBytes": 43108,
+      "bytes": 7606,
+      "rawBytes": 62848,
       "keys": 311
     },
     {
@@ -180,8 +180,8 @@
     {
       "id": "weapons/light_bowgun/index",
       "file": "weapons/light_bowgun/index.json.gz",
-      "bytes": 5439,
-      "rawBytes": 31735,
+      "bytes": 5769,
+      "rawBytes": 47996,
       "keys": 256
     },
     {
@@ -194,8 +194,8 @@
     {
       "id": "weapons/heavy_bowgun/index",
       "file": "weapons/heavy_bowgun/index.json.gz",
-      "bytes": 5611,
-      "rawBytes": 32326,
+      "bytes": 5913,
+      "rawBytes": 48948,
       "keys": 262
     },
     {

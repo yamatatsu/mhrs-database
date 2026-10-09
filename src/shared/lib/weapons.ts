@@ -77,8 +77,14 @@ export interface WeaponIndexItem {
   readonly rarity: number;
   /** 攻撃力。 */
   readonly atk: number;
+  /** 会心率（負値あり）。 */
+  readonly critical_rate: number;
   /** 属性（種類と威力）。双剣などは複数持つ。無属性なら空配列。 */
   readonly elements: readonly WeaponElement[];
+  /** 切れ味（赤 / 橙 / 黄 / 緑 / 青 / 白 / 紫）。弓・ガンナーは空配列。 */
+  readonly sharpness_val_list: readonly number[];
+  /** 匠による切れ味上昇分（一覧では未使用、データのみ保持）。 */
+  readonly takumi_val_list: readonly number[];
   /** 根から自身までの weapon id 配列（派生ツリー上の位置）。 */
   readonly path: readonly number[];
   /** 派生ツリーの前順ソートキー。辞書順で親 → 子孫、兄弟は派生順になる。 */

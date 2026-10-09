@@ -111,25 +111,31 @@ public/data/weapons/
 
 `WeaponIndexItem[]`（`sort` 昇順＝派生ツリーの前順で整列済み）。
 
-| フィールド | 型              | 説明                                             |
-| ---------- | --------------- | ------------------------------------------------ |
-| `id`       | number          | 武器 id                                          |
-| `name`     | string          | 武器名（日本語）                                 |
-| `rarity`   | number          | レア度（`rare_type`）                            |
-| `atk`      | number          | 攻撃力                                           |
-| `elements` | WeaponElement[] | 属性（種類と威力）。無属性なら `[]`（§5.4.1）    |
-| `path`     | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
-| `sort`     | string          | 派生ツリーの前順ソートキー（§5.7）               |
+| フィールド           | 型              | 説明                                             |
+| -------------------- | --------------- | ------------------------------------------------ |
+| `id`                 | number          | 武器 id                                          |
+| `name`               | string          | 武器名（日本語）                                 |
+| `rarity`             | number          | レア度（`rare_type`）                            |
+| `atk`                | number          | 攻撃力                                           |
+| `critical_rate`      | number          | 会心率（負値あり）                               |
+| `elements`           | WeaponElement[] | 属性（種類と威力）。無属性なら `[]`（§5.4.1）    |
+| `sharpness_val_list` | number[]        | 切れ味（§5.4.2）。弓・ガンナーは `[]`            |
+| `takumi_val_list`    | number[]        | 匠による切れ味上昇分（一覧では未使用）           |
+| `path`               | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
+| `sort`               | string          | 派生ツリーの前順ソートキー（§5.7）               |
 
 ```json
 {
   "id": 340,
-  "name": "霆剣ライゼクス",
+  "name": "無明刀【空諦】",
   "rarity": 10,
-  "atk": 320,
+  "atk": 280,
+  "critical_rate": 40,
   "elements": [],
-  "path": [2, 3, 0, 1, 7, 8, 335, 338, 339, 340],
-  "sort": "002000000100"
+  "sharpness_val_list": [40, 30, 100, 80, 80, 30, 40],
+  "takumi_val_list": [0, 0, 0, 0],
+  "path": [0, 1, 2, 110, 111, 112, 338, 339, 340],
+  "sort": "00000200000"
 }
 ```
 
@@ -151,6 +157,17 @@ interface WeaponElement {
 - 属性は武器種ごとに個数が異なる。双剣はメイン + サブの 2 属性を持ち得る。
 - 個数を配列で表現しているため、将来属性数が変わる武器種が現れても index スキーマの
   変更は不要（`elements` の要素が増減するだけ）。
+
+#### 5.4.2 `sharpness_val_list` / `takumi_val_list`
+
+`base_data` の切れ味をそのまま数値配列で持つ。並びは
+**赤 / 橙 / 黄 / 緑 / 青 / 白 / 紫**の 7 色。
+
+- 一覧の切れ味バーは `sharpness_val_list` を使い、合計の最大値 `400` を 100% として
+  各色の値を横方向に積み上げて描画する（残りは黒）。
+- `takumi_val_list` は匠スキルによる上昇分。**現状は一覧で未使用**で、index に保持する
+  のみ（将来の詳細表示用）。
+- 弓・ガンナーなど切れ味を持たない武器は空配列 `[]`。
 
 ### 5.5 detail スキーマ（`weapons/<type>/<id>.json.gz`）
 
@@ -346,6 +363,8 @@ const depth = item.path.length - 1;
 - **読み込み**: `src/shared/api/client.ts` の `loadDataset(id)`
   - `id` は `public/data/` 配下の拡張子なしパス（例: `weapons/great_sword/index`）。
   - 同一 URL はメモリキャッシュ。gzip はマジックバイトで二重展開を防止。
+- **一覧表示**: `src/pages/weapons/ui/WeaponTypePage.tsx`。切れ味バーは
+  `src/pages/weapons/ui/SharpnessBar.tsx` が描画する（§5.4.2）。
 - **ルーティング**: `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType` で `index` を読み、`WeaponTypePage` に渡す。`/weapons` は先頭武器種へリダイレクト。
 
 ## 7. 変更・再生成の手順

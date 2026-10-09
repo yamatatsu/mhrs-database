@@ -129,9 +129,15 @@ function buildIndex(data: Record<string, unknown>): unknown[] {
         name,
         rarity: asNumber(record.rare_type) ?? 0,
         atk: asNumber(record.atk) ?? 0,
+        // 会心率（負値あり）。
+        critical_rate: asNumber(record.critical_rate) ?? 0,
         // 属性は武器種ごとに個数が異なる（双剣はメイン + サブの 2 属性）。
         // 将来のスキーマ変更に耐えるよう、固定フィールドではなく配列で持つ。
         elements: weaponElements(record),
+        // 切れ味（赤 / 橙 / 黄 / 緑 / 青 / 白 / 紫）。弓・ガンナーは空配列。
+        sharpness_val_list: numberList(record.sharpness_val_list),
+        // 匠による切れ味上昇分。現状は一覧では未使用（データのみ保持）。
+        takumi_val_list: numberList(record.takumi_val_list),
         // 根 → 自身の weapon id パス（表示・親子・インデント用）。
         path: tree.pathById.get(id) ?? [id],
         // 兄弟順ベースの前順ソートキー（既定ソート用）。
@@ -367,6 +373,11 @@ function weaponElements(record: Record<string, unknown>): WeaponElement[] {
     if (typeof type === "string" && value > 0) elements.push({ type, value });
   }
   return elements;
+}
+
+/** 数値配列を安全に取り出す（非数値は 0、配列以外は空配列）。 */
+function numberList(value: unknown): number[] {
+  return asArray(value).map((item) => asNumber(item) ?? 0);
 }
 
 /**
