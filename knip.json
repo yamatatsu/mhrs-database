@@ -9,6 +9,5 @@
     "entry": ["src/app/routeTree.gen.ts"]
   },
   "ignoreExportsUsedInFile": true,
-  "ignore": ["src/shared/lib/**"],
-  "ignoreDependencies": ["lucide-react"]
+  "ignore": ["src/shared/lib/**"]
 }

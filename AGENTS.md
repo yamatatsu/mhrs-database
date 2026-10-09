@@ -79,7 +79,8 @@ shared/  → ビジネスロジックを持たない基盤（UI キット、ユ�
 - `src/app/styles/global.css` — Tailwind のエントリと shadcn のテーマトークン。
 - `src/pages/<page>/ui/` — ページコンポーネント。
 - `src/shared/ui/` — shadcn コンポーネント（CLI がここに生成）と、アプリ非依存の
-  レイアウト UI（`header.tsx`、`sidebar.tsx`）。`Sidebar` はナビ項目を props で受ける。
+  レイアウト UI（`app-sidebar.tsx`）。`AppSidebar` はタイトルとナビ項目を props で
+  受け、shadcn の `Sidebar` 一式を組み合わせて描画する。
 - `src/shared/lib/` — 共有ユーティリティ。
 
 ## GitHub Pages

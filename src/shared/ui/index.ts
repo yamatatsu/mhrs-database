@@ -1,3 +1,3 @@
+export { AppSidebar, type SidebarItem } from "./app-sidebar";
 export { Button, buttonVariants } from "./button";
-export { Header } from "./header";
-export { Sidebar, type SidebarItem } from "./sidebar";
+export { SidebarInset, SidebarProvider, SidebarTrigger } from "./sidebar";
