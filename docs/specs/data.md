@@ -67,7 +67,6 @@ weapons 以外は **ゲーム内部テーブルをスリム化しただけ**の�
 
 ```
 public/data/weapons/
-  common.json.gz                 # 全武器種で共有する系統名マスタ
   <武器種>/
     row.json.gz                  # 元の（ゲーム寄りの）構造。参考・再処理用
     index.json.gz                # 一覧用の軽量インデックス
@@ -112,15 +111,15 @@ public/data/weapons/
 
 `WeaponIndexItem[]`（`sort` 昇順＝派生ツリーの前順で整列済み）。
 
-| フィールド | 型       | 説明                                             |
-| ---------- | -------- | ------------------------------------------------ |
-| `id`       | number   | 武器 id                                          |
-| `name`     | string   | 武器名（日本語）                                 |
-| `rarity`   | number   | レア度（`rare_type`）                            |
-| `atk`      | number   | 攻撃力                                           |
-| `series`   | string?  | 系統名（解決できた場合のみ。§5.8）               |
-| `path`     | number[] | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
-| `sort`     | string   | 派生ツリーの前順ソートキー（§5.7）               |
+| フィールド | 型              | 説明                                             |
+| ---------- | --------------- | ------------------------------------------------ |
+| `id`       | number          | 武器 id                                          |
+| `name`     | string          | 武器名（日本語）                                 |
+| `rarity`   | number          | レア度（`rare_type`）                            |
+| `atk`      | number          | 攻撃力                                           |
+| `elements` | WeaponElement[] | 属性（種類と威力）。無属性なら `[]`（§5.4.1）    |
+| `path`     | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
+| `sort`     | string          | 派生ツリーの前順ソートキー（§5.7）               |
 
 ```json
 {
@@ -128,11 +127,30 @@ public/data/weapons/
   "name": "霆剣ライゼクス",
   "rarity": 10,
   "atk": 320,
-  "series": "鉱石素材派生",
+  "elements": [],
   "path": [2, 3, 0, 1, 7, 8, 335, 338, 339, 340],
   "sort": "002000000100"
 }
 ```
+
+#### 5.4.1 `elements`
+
+`base_data` のメイン属性（`main_element_type` / `main_element_val`）と、サブ属性
+（`sub_element_type` / `sub_element_val`）をこの順に配列化したもの。属性値が `0` の
+ものは無属性として含めない。
+
+```ts
+interface WeaponElement {
+  /** 属性の種類（例: Fire / Water / Thunder / Ice / Dragon / Poison / Paralyze / Sleep / Bomb）。 */
+  type: string;
+  /** 属性値（威力）。 */
+  value: number;
+}
+```
+
+- 属性は武器種ごとに個数が異なる。双剣はメイン + サブの 2 属性を持ち得る。
+- 個数を配列で表現しているため、将来属性数が変わる武器種が現れても index スキーマの
+  変更は不要（`elements` の要素が増減するだけ）。
 
 ### 5.5 detail スキーマ（`weapons/<type>/<id>.json.gz`）
 
@@ -182,7 +200,6 @@ public/data/weapons/
 | ------------------ | -------------- | ------------------------------------------ |
 | `name`             | string \| null | 武器名（`name` / `name_mr` を id で join） |
 | `description`      | string \| null | 説明文（`explain` / `explain_mr`）         |
-| `series`           | string \| null | 系統名（§5.8）                             |
 | `recipes`          | object         | 生産・強化・加工レシピ（§5.5.1）           |
 | `tree`             | object \| null | 派生ツリー上の位置（§5.5.2）               |
 | `hyakuryu_buildup` | object \| null | 百竜強化（§5.5.3）                         |
@@ -319,26 +336,13 @@ items.toSorted((a, b) => (a.sort < b.sort ? -1 : a.sort > b.sort ? 1 : 0));
 const depth = item.path.length - 1;
 ```
 
-### 5.8 系統名（series）と既知の制約
-
-- `tree_type`（数値）を系統 id とみなし、`weapon_series` / `weapon_series_mr` の `WeaponSeries_Hunter_<id>` と対応付けて `series` を得る。`"Ore"` は系統 id 0。
-- **制約**: 一部の `tree_type`（99〜134 など）に対応する系統名が元データに存在せず、`series` は付かない。また `？？？派生` のようなプレースホルダは採用しない。→ `series` は**オプショナル**。
-
-### 5.9 `weapons/common.json.gz`
-
-```jsonc
-{
-  "weapon_series":    { "entries": [ { "name": "WeaponSeries_Hunter_000", "content": ["鉱石素材派生", "Ore Tree"] }, … ] },
-  "weapon_series_mr": { "entries": [ … ] }
-}
-```
-
 ## 6. フロントエンド側
 
 - **型・定数**: `src/shared/lib/weapons.ts`
   - `WeaponType` / `weaponTypes`（id・表示名・表示順）
   - `getWeaponType(id)`
   - `WeaponIndexItem`（§5.4 の index 型）
+  - `WeaponElement` / `getWeaponElementLabel(type)`（§5.4.1 の属性表示。未知の属性種別は生の表記にフォールバック）
 - **読み込み**: `src/shared/api/client.ts` の `loadDataset(id)`
   - `id` は `public/data/` 配下の拡張子なしパス（例: `weapons/great_sword/index`）。
   - 同一 URL はメモリキャッシュ。gzip はマジックバイトで二重展開を防止。

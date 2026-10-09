@@ -1,2 +1,10 @@
 export { cn } from "./utils";
-export { getWeaponType, type WeaponIndexItem, type WeaponType, weaponTypes } from "./weapons";
+export {
+  getWeaponElementLabel,
+  getWeaponType,
+  type WeaponElement,
+  type WeaponElementType,
+  type WeaponIndexItem,
+  type WeaponType,
+  weaponTypes,
+} from "./weapons";

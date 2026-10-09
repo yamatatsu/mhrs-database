@@ -29,6 +29,44 @@ export function getWeaponType(id: string): WeaponType | undefined {
   return weaponTypes.find((weaponType) => weaponType.id === id);
 }
 
+/** 武器の属性種別。データ上の表記をそのまま使う。 */
+export type WeaponElementType =
+  | "Fire"
+  | "Water"
+  | "Thunder"
+  | "Ice"
+  | "Dragon"
+  | "Poison"
+  | "Paralyze"
+  | "Sleep"
+  | "Bomb";
+
+/** 一覧に表示する武器の属性 1 件（種類と威力）。 */
+export interface WeaponElement {
+  /** 属性の種類。 */
+  readonly type: WeaponElementType;
+  /** 属性値（威力）。 */
+  readonly value: number;
+}
+
+/** 属性種別の表示名。 */
+const weaponElementLabels = new Map<string, string>([
+  ["Fire", "火"],
+  ["Water", "水"],
+  ["Thunder", "雷"],
+  ["Ice", "氷"],
+  ["Dragon", "龍"],
+  ["Poison", "毒"],
+  ["Paralyze", "麻痺"],
+  ["Sleep", "睡眠"],
+  ["Bomb", "爆破"],
+]);
+
+/** 属性種別の表示名を引く。未知の種別はそのまま返す（将来のデータ追加に耐える）。 */
+export function getWeaponElementLabel(type: string): string {
+  return weaponElementLabels.get(type) ?? type;
+}
+
 /** 一覧用インデックス（`weapons/<武器種>/index.json.gz`）の 1 件。 */
 export interface WeaponIndexItem {
   /** 武器 id。 */
@@ -39,8 +77,8 @@ export interface WeaponIndexItem {
   readonly rarity: number;
   /** 攻撃力。 */
   readonly atk: number;
-  /** 系統名（解決できた場合のみ）。 */
-  readonly series?: string;
+  /** 属性（種類と威力）。双剣などは複数持つ。無属性なら空配列。 */
+  readonly elements: readonly WeaponElement[];
   /** 根から自身までの weapon id 配列（派生ツリー上の位置）。 */
   readonly path: readonly number[];
   /** 派生ツリーの前順ソートキー。辞書順で親 → 子孫、兄弟は派生順になる。 */

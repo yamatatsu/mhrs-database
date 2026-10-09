@@ -9,7 +9,7 @@
 
 - データソース: [MHRice](https://mhrise.mhrice.info/)（`https://mhrise.mhrice.info/mhrice.json`、2024-02 版）
 - ETL: `vp run etl` が `public/data/` にカテゴリ別の `.json.gz` を生成する。**生成物はコミット対象**。
-  - 武器は武器種ごとに分割: `public/data/weapons/<武器種>.json.gz`（各ファイルが自己完結）＋ 共有マスタ `weapons/common.json.gz`。画面（ルート）が武器種単位のため。
+  - 武器は武器種ごとのディレクトリに分割: `public/data/weapons/<武器種>/{row,index,<武器id>}.json.gz`。画面（ルート）が武器種単位のため。
   - その他: `armor_skills` / `items` / `monsters` / `quests`。
 - 抽出時にテスト用・未使用データ（`#Rejected#` 等）を除外している。
 

@@ -23,8 +23,6 @@ const WEAPON_KEYS = new Set([
   "horn_melody_mr",
   "hyakuryu_weapon_buildup",
   "weapon_chaos_critical",
-  "weapon_series",
-  "weapon_series_mr",
 ]);
 
 interface WeaponTypeConfig {
@@ -55,8 +53,6 @@ const WEAPON_TYPES: Record<string, WeaponTypeConfig> = {
 const NAME_RE = /^W_\w+_(\d+)_Name(?:_MR)?$/;
 /** 説明文マスタの name 列（W_<武器種>_<id>_Explain）から武器 id を抽出する。 */
 const EXPLAIN_RE = /^W_\w+_(\d+)_Explain(?:_MR)?$/;
-/** 系統名マスタの name 列（WeaponSeries_Hunter_<id>）から系統 id を抽出する。 */
-const SERIES_RE = /^WeaponSeries_Hunter_(\d+)$/;
 
 /**
  * タグ付き union（キーが 1 つだけのオブジェクト）を値へ開く際に認識するキー。
@@ -84,14 +80,12 @@ export const weapons: Dataset = {
 /**
  * 武器カテゴリは武器種ごとにディレクトリを切り、次のファイルを出力する。
  * - `weapons/<武器種>/row`: 元の（ゲーム寄りの）構造。参考・再処理用。
- * - `weapons/<武器種>/index`: 一覧用の軽量インデックス（id / 名前 / レア度 / 攻撃力 / 系統名）。
+ * - `weapons/<武器種>/index`: 一覧用の軽量インデックス（id / 名前 / レア度 / 攻撃力 / 属性）。
  * - `weapons/<武器種>/<武器 id>`: 武器 1 件ごとの非正規化レコード
  *   （base_data の入れ子をフラット化し、名称・説明・レシピ・派生ツリーを join、enum を正規化済み）。
- * - `weapons/common`: 全武器種で共有する系統名マスタ。
  */
 function buildFiles(group: Record<string, unknown>): DatasetFile[] {
-  const files: DatasetFile[] = [{ id: "weapons/common", data: pickCommon(group) }];
-  const series = buildSeriesIndex(group);
+  const files: DatasetFile[] = [];
 
   for (const [weaponType, config] of Object.entries(WEAPON_TYPES)) {
     const weapon = group[weaponType];
@@ -112,15 +106,15 @@ function buildFiles(group: Record<string, unknown>): DatasetFile[] {
     }
 
     files.push({ id: `weapons/${weaponType}/row`, data });
-    files.push({ id: `weapons/${weaponType}/index`, data: buildIndex(data, series) });
-    files.push(...buildDetails(weaponType, data, series));
+    files.push({ id: `weapons/${weaponType}/index`, data: buildIndex(data) });
+    files.push(...buildDetails(weaponType, data));
   }
 
   return files;
 }
 
 /** 一覧用インデックス（軽量）。武器名ページはこれだけを読む。 */
-function buildIndex(data: Record<string, unknown>, series: Map<number, string>): unknown[] {
+function buildIndex(data: Record<string, unknown>): unknown[] {
   const names = buildEntryNameMap(data, ["name", "name_mr"], NAME_RE);
   const tree = buildTreeIndex(data);
 
@@ -129,14 +123,15 @@ function buildIndex(data: Record<string, unknown>, series: Map<number, string>):
     if (id === undefined) return [];
     const name = names.get(id);
     if (name === undefined) return [];
-    const seriesName = seriesNameOf(tree.byWeapon.get(id), series);
     return [
       {
         id,
         name,
         rarity: asNumber(record.rare_type) ?? 0,
         atk: asNumber(record.atk) ?? 0,
-        ...(seriesName !== undefined ? { series: seriesName } : {}),
+        // 属性は武器種ごとに個数が異なる（双剣はメイン + サブの 2 属性）。
+        // 将来のスキーマ変更に耐えるよう、固定フィールドではなく配列で持つ。
+        elements: weaponElements(record),
         // 根 → 自身の weapon id パス（表示・親子・インデント用）。
         path: tree.pathById.get(id) ?? [id],
         // 兄弟順ベースの前順ソートキー（既定ソート用）。
@@ -151,11 +146,7 @@ function buildIndex(data: Record<string, unknown>, series: Map<number, string>):
 }
 
 /** 武器 1 件ごとの非正規化レコードを生成する。 */
-function buildDetails(
-  weaponType: string,
-  data: Record<string, unknown>,
-  series: Map<number, string>,
-): DatasetFile[] {
+function buildDetails(weaponType: string, data: Record<string, unknown>): DatasetFile[] {
   const names = buildEntryNameMap(data, ["name", "name_mr"], NAME_RE);
   const explains = buildEntryNameMap(data, ["explain", "explain_mr"], EXPLAIN_RE);
   const tree = buildTreeIndex(data);
@@ -178,7 +169,6 @@ function buildDetails(
       ...record,
       name: names.get(id) ?? null,
       description: explains.get(id) ?? null,
-      series: seriesNameOf(node, series) ?? null,
       recipes: {
         product: recipes.product.get(id)?.[0] ?? null,
         change: recipes.change.get(id)?.[0] ?? null,
@@ -351,33 +341,32 @@ function resolveTree(
   return { type: node.type, index: node.index, prev: parent?.weaponId ?? null, next };
 }
 
-/** 系統名マスタを系統 id → 名称で索引化する（`tree_type` が系統 id に対応）。 */
-function buildSeriesIndex(group: Record<string, unknown>): Map<number, string> {
-  const map = new Map<number, string>();
-  for (const key of ["weapon_series", "weapon_series_mr"]) {
-    const container = group[key];
-    if (!isObject(container)) continue;
-    for (const entry of asArray(container.entries)) {
-      if (!isObject(entry) || typeof entry.name !== "string") continue;
-      const match = SERIES_RE.exec(entry.name);
-      if (!match) continue;
-      const ja = getEntryJa(entry);
-      // 「？？？派生」など未確定のプレースホルダは採用しない。
-      if (ja === undefined || ja.includes("？")) continue;
-      map.set(Number(match[1]), ja);
-    }
-  }
-  return map;
+/** 一覧インデックスに載せる属性 1 件（種類と威力）。 */
+interface WeaponElement {
+  /** 属性の種類（例: `Fire` / `Water` / `Thunder` / `Ice` / `Dragon` / `Poison` / `Paralyze` / `Sleep` / `Bomb`）。 */
+  type: string;
+  /** 属性値（威力）。 */
+  value: number;
 }
 
-/** ツリーノードから系統名を引く。`"Ore"` は系統 id 0 に対応する。 */
-function seriesNameOf(
-  node: { type: unknown } | undefined,
-  series: Map<number, string>,
-): string | undefined {
-  if (!node) return undefined;
-  const id = node.type === "Ore" ? 0 : asNumber(node.type);
-  return id !== undefined ? series.get(id) : undefined;
+/**
+ * 武器の属性を配列にまとめる。
+ * メイン属性（`main_element_type` / `main_element_val`）を先頭に、サブ属性
+ * （`sub_element_type` / `sub_element_val`）があれば続ける（双剣など）。
+ * 属性値が 0 のものは無属性として除外する。
+ */
+function weaponElements(record: Record<string, unknown>): WeaponElement[] {
+  const elements: WeaponElement[] = [];
+  const fields = [
+    ["main_element_type", "main_element_val"],
+    ["sub_element_type", "sub_element_val"],
+  ] as const;
+  for (const [typeKey, valueKey] of fields) {
+    const type = record[typeKey];
+    const value = asNumber(record[valueKey]) ?? 0;
+    if (typeof type === "string" && value > 0) elements.push({ type, value });
+  }
+  return elements;
 }
 
 /**
@@ -528,14 +517,6 @@ function buildEntryNameMap(
 /** (tree_type, index) を文字列キーに変換する。 */
 function nodeKey(type: unknown, index: number): string {
   return `${String(type)}|${index}`;
-}
-
-/** 全武器種で共有するマスタ。 */
-function pickCommon(group: Record<string, unknown>): Record<string, unknown> {
-  return {
-    weapon_series: group.weapon_series,
-    weapon_series_mr: group.weapon_series_mr,
-  };
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { WeaponIndexItem, WeaponType } from "@/shared/lib";
+import { getWeaponElementLabel, type WeaponIndexItem, type WeaponType } from "@/shared/lib";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui";
 
 interface WeaponTypePageProps {
@@ -18,9 +18,10 @@ export function WeaponTypePage({ weaponType, items }: WeaponTypePageProps) {
           <TableRow>
             <TableHead className="w-16">ID</TableHead>
             <TableHead>名前</TableHead>
-            <TableHead>系統</TableHead>
             <TableHead className="text-right">レア度</TableHead>
             <TableHead className="text-right">攻撃力</TableHead>
+            <TableHead>属性</TableHead>
+            <TableHead className="text-right">属性値</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -35,9 +36,22 @@ export function WeaponTypePage({ weaponType, items }: WeaponTypePageProps) {
                   {item.name}
                 </span>
               </TableCell>
-              <TableCell className="text-muted-foreground">{item.series ?? "—"}</TableCell>
               <TableCell className="text-right">{item.rarity}</TableCell>
               <TableCell className="text-right">{item.atk}</TableCell>
+              <TableCell>
+                {item.elements.length > 0 ? (
+                  item.elements.map((element) => getWeaponElementLabel(element.type)).join(" / ")
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                {item.elements.length > 0 ? (
+                  item.elements.map((element) => element.value).join(" / ")
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
