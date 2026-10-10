@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { Link, type LinkProps } from "@tanstack/react-router";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -26,7 +28,15 @@ function isCategory(entry: SidebarEntry): entry is SidebarCategory {
   return "items" in entry;
 }
 
-export function AppSidebar({ title, items }: { title: string; items: readonly SidebarEntry[] }) {
+export function AppSidebar({
+  title,
+  items,
+  footer,
+}: {
+  title: string;
+  items: readonly SidebarEntry[];
+  footer?: ReactNode;
+}) {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -60,6 +70,7 @@ export function AppSidebar({ title, items }: { title: string; items: readonly Si
           ),
         )}
       </SidebarContent>
+      {footer ? <SidebarFooter>{footer}</SidebarFooter> : null}
     </Sidebar>
   );
 }

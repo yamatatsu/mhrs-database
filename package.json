@@ -28,7 +28,6 @@
   "devDependencies": {
     "@feature-sliced/steiger-plugin": "^0.8.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@tanstack/react-router-devtools": "^1.167.2",
     "@tanstack/router-plugin": "^1.168.42",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",

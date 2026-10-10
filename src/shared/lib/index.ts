@@ -1,4 +1,5 @@
 export { cn } from "./utils";
+export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme";
 export {
   getMonsterPartLabel,
   type MonsterCondition,

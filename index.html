@@ -6,6 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MHRS Database</title>
     <script>
+      // Apply the saved theme before first paint to avoid a flash of the wrong
+      // color scheme. Keep the key and resolution logic in sync with
+      // `src/shared/lib/theme.tsx`.
+      (function () {
+        var theme;
+        try {
+          theme = window.localStorage.getItem("mhrs:theme");
+        } catch (error) {
+          theme = null;
+        }
+        if (theme !== "light" && theme !== "dark" && theme !== "system") {
+          theme = "system";
+        }
+        var resolved =
+          theme === "system"
+            ? window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : theme;
+        document.documentElement.classList.toggle("dark", resolved === "dark");
+        document.documentElement.style.colorScheme = resolved;
+      })();
+    </script>
+    <script>
       // GitHub Pages serves `404.html` for unknown paths. That page stores the
       // requested path in sessionStorage and redirects to the app root, so we
       // restore the real URL here before the router initializes.
