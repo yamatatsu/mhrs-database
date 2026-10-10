@@ -17,6 +17,7 @@ import { Route as MonstersIndexRouteImport } from './routes/monsters.index'
 import { Route as MonstersMonsterIdRouteImport } from './routes/monsters.$monsterId'
 import { Route as WeaponsIndexRouteImport } from './routes/weapons.index'
 import { Route as WeaponsWeaponTypeRouteImport } from './routes/weapons.$weaponType'
+import { Route as WeaponsWeaponTypeWeaponIdRouteImport } from './routes/weapons.$weaponType.$weaponId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -58,6 +59,12 @@ const WeaponsWeaponTypeRoute = WeaponsWeaponTypeRouteImport.update({
   path: '/$weaponType',
   getParentRoute: () => WeaponsRoute,
 } as any)
+const WeaponsWeaponTypeWeaponIdRoute =
+  WeaponsWeaponTypeWeaponIdRouteImport.update({
+    id: '/$weaponId',
+    path: '/$weaponId',
+    getParentRoute: () => WeaponsWeaponTypeRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,17 +72,19 @@ export interface FileRoutesByFullPath {
   '/monsters': typeof MonstersRouteWithChildren
   '/weapons': typeof WeaponsRouteWithChildren
   '/monsters/$monsterId': typeof MonstersMonsterIdRoute
-  '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/weapons/$weaponType': typeof WeaponsWeaponTypeRouteWithChildren
   '/monsters/': typeof MonstersIndexRoute
   '/weapons/': typeof WeaponsIndexRoute
+  '/weapons/$weaponType/$weaponId': typeof WeaponsWeaponTypeWeaponIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/items': typeof ItemsRoute
   '/monsters/$monsterId': typeof MonstersMonsterIdRoute
-  '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/weapons/$weaponType': typeof WeaponsWeaponTypeRouteWithChildren
   '/monsters': typeof MonstersIndexRoute
   '/weapons': typeof WeaponsIndexRoute
+  '/weapons/$weaponType/$weaponId': typeof WeaponsWeaponTypeWeaponIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -84,9 +93,10 @@ export interface FileRoutesById {
   '/monsters': typeof MonstersRouteWithChildren
   '/weapons': typeof WeaponsRouteWithChildren
   '/monsters/$monsterId': typeof MonstersMonsterIdRoute
-  '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/weapons/$weaponType': typeof WeaponsWeaponTypeRouteWithChildren
   '/monsters/': typeof MonstersIndexRoute
   '/weapons/': typeof WeaponsIndexRoute
+  '/weapons/$weaponType/$weaponId': typeof WeaponsWeaponTypeWeaponIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/weapons/$weaponType'
     | '/monsters/'
     | '/weapons/'
+    | '/weapons/$weaponType/$weaponId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/weapons/$weaponType'
     | '/monsters'
     | '/weapons'
+    | '/weapons/$weaponType/$weaponId'
   id:
     | '__root__'
     | '/'
@@ -117,6 +129,7 @@ export interface FileRouteTypes {
     | '/weapons/$weaponType'
     | '/monsters/'
     | '/weapons/'
+    | '/weapons/$weaponType/$weaponId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WeaponsWeaponTypeRouteImport
       parentRoute: typeof WeaponsRoute
     }
+    '/weapons/$weaponType/$weaponId': {
+      id: '/weapons/$weaponType/$weaponId'
+      path: '/$weaponId'
+      fullPath: '/weapons/$weaponType/$weaponId'
+      preLoaderRoute: typeof WeaponsWeaponTypeWeaponIdRouteImport
+      parentRoute: typeof WeaponsWeaponTypeRoute
+    }
   }
 }
 
@@ -201,13 +221,24 @@ const MonstersRouteWithChildren = MonstersRoute._addFileChildren(
   MonstersRouteChildren,
 )
 
+interface WeaponsWeaponTypeRouteChildren {
+  WeaponsWeaponTypeWeaponIdRoute: typeof WeaponsWeaponTypeWeaponIdRoute
+}
+
+const WeaponsWeaponTypeRouteChildren: WeaponsWeaponTypeRouteChildren = {
+  WeaponsWeaponTypeWeaponIdRoute: WeaponsWeaponTypeWeaponIdRoute,
+}
+
+const WeaponsWeaponTypeRouteWithChildren =
+  WeaponsWeaponTypeRoute._addFileChildren(WeaponsWeaponTypeRouteChildren)
+
 interface WeaponsRouteChildren {
-  WeaponsWeaponTypeRoute: typeof WeaponsWeaponTypeRoute
+  WeaponsWeaponTypeRoute: typeof WeaponsWeaponTypeRouteWithChildren
   WeaponsIndexRoute: typeof WeaponsIndexRoute
 }
 
 const WeaponsRouteChildren: WeaponsRouteChildren = {
-  WeaponsWeaponTypeRoute: WeaponsWeaponTypeRoute,
+  WeaponsWeaponTypeRoute: WeaponsWeaponTypeRouteWithChildren,
   WeaponsIndexRoute: WeaponsIndexRoute,
 }
 

@@ -477,6 +477,12 @@ public/data/monsters/
   - `getWeaponType(id)`
   - `WeaponIndexItem`（§5.4 の index 型）
   - `WeaponElement` / `getWeaponElementLabel(type)`（§5.4.1 の属性表示。未知の属性種別は生の表記にフォールバック）
+  - `WeaponDetail` / `WeaponRecipes` / `WeaponRecipe` / `WeaponTree`（§5.5 の detail 型）、
+    `getWeaponDetailElements(detail)`（detail の主・サブ属性を一覧と同じ配列へまとめる）
+- **レシピ素材の名称**: `src/shared/lib/items.ts` の `ItemNameTable` と `getItemName` /
+  `getMaterialCategoryName`。`src/pages/weapons/api/load-item-names.ts` の
+  `loadItemNames()` が `items` データからアイテム名・素材カテゴリ名の参照テーブルを構築する
+  （レシピの素材はアイテム id で保持されるため、表示時にここで名称へ解決する）。
 - **読み込み**: `src/shared/api/client.ts` の `loadDataset(id)`
   - `id` は `public/data/` 配下の拡張子なしパス（例: `weapons/great_sword/index`）。
   - 同一 URL はメモリキャッシュ。gzip はマジックバイトで二重展開を防止。
@@ -489,8 +495,21 @@ public/data/monsters/
   `loadWeaponList(weaponType)` が index を読み、武器種固有フィールドを型付けした
   判別可能な union（`WeaponListData`）を返す。狩猟笛は `melodies` を join 済みの
   `HornIndexItem` として返す。
-- **ルーティング**: `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType` で
-  `loadWeaponList` を呼び、`WeaponTypePage` に渡す。`/weapons` は先頭武器種へリダイレクト。
+- **読み込み（武器 1 件）**: `src/pages/weapons/api/load-weapon-detail.ts` の
+  `loadWeaponDetail(weaponType, id)` が `weapons/<武器種>/<id>` を読む。
+- **詳細ドロワー**: `src/pages/weapons/ui/WeaponDetailDrawer.tsx` が shadcn `Sheet` で
+  基本情報（レア度 / 攻撃力 / 会心率 / 防御力 / 属性 / スロット / 切れ味）・説明・
+  生産/強化/加工レシピ・派生ツリー（`prev` / `next` を一覧の名称でリンク）を表示する。
+  モバイルは全幅（`data-[side=right]:w-full`）で表示する。
+- **ルーティング**:
+  - `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType`（一覧）。
+    `loadWeaponList` を呼び `WeaponTypePage` に渡しつつ、`<Outlet />` で子ルートを重ねる。
+  - `src/app/routes/weapons.$weaponType.$weaponId.tsx` → `/weapons/$weaponType/$weaponId`（詳細）。
+    `loadWeaponDetail` / `loadWeaponList`（キャッシュで即時）/ `loadItemNames` を読み、
+    `WeaponDetailDrawer` を右側ドロワーとして描画する。開閉はルートで表現し、閉じると
+    一覧ルートへ戻る。一覧は親ルートが保持したまま子だけが入れ替わるため、開閉でソート
+    状態が失われない。
+  - `/weapons` は先頭武器種へリダイレクト。
 - **モンスター**
   - **型・定数**: `src/shared/lib/monsters.ts`（`MonsterIndexItem` / `MonsterDetail`、
     `monsterHitzoneColumns` / `monsterStatusTypes`、`getMonsterPartLabel`）。

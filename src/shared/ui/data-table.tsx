@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTable, type ColumnDef, type RowData, type SortingState } from "@tanstack/react-table";
+import { cn } from "cn";
 import { dataTableFeatures, type DataTableFeatures } from "./data-table-features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
 
@@ -8,6 +9,10 @@ interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[];
   /** 表示する行データ。 */
   data: readonly TData[];
+  /** 行クリック時の処理。指定すると行がクリック可能になる。 */
+  onRowClick?: (row: TData) => void;
+  /** 行ごとの追加クラス。選択行のハイライトなどに使う。 */
+  getRowClassName?: (row: TData) => string | undefined;
 }
 
 /**
@@ -15,7 +20,12 @@ interface DataTableProps<TData extends RowData> {
  * ドメイン知識は持たず、カラム定義とデータを props で受け取るだけ。
  * ソートはヘッダー操作で行い、未ソート時は受け取ったデータ順（武器は派生ツリー前順）を保つ。
  */
-export function DataTable<TData extends RowData>({ columns, data }: DataTableProps<TData>) {
+export function DataTable<TData extends RowData>({
+  columns,
+  data,
+  onRowClick,
+  getRowClassName,
+}: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useTable({
@@ -43,7 +53,11 @@ export function DataTable<TData extends RowData>({ columns, data }: DataTablePro
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                className={cn(onRowClick && "cursor-pointer", getRowClassName?.(row.original))}
+              >
                 {row.getAllCells().map((cell) => (
                   <TableCell key={cell.id}>
                     <table.FlexRender cell={cell} />

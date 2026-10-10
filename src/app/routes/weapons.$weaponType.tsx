@@ -1,6 +1,12 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  notFound,
+  Outlet,
+  useMatchRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { loadWeaponList, WeaponTypePage } from "@/pages/weapons";
-import { getWeaponType } from "@/shared/lib";
+import { getWeaponType, type WeaponIndexItem } from "@/shared/lib";
 
 export const Route = createFileRoute("/weapons/$weaponType")({
   loader: async ({ params }) => {
@@ -12,7 +18,31 @@ export const Route = createFileRoute("/weapons/$weaponType")({
   component: WeaponTypeRoute,
 });
 
+/**
+ * 武器種の一覧。詳細は子ルート（`/weapons/$weaponType/$weaponId`）のドロワーとして
+ * `<Outlet />` に描画する。親は一覧を保持したまま子だけが入れ替わるため、
+ * ドロワーの開閉で一覧のソート状態が失われない。
+ */
 function WeaponTypeRoute() {
   const { weaponType, list } = Route.useLoaderData();
-  return <WeaponTypePage weaponType={weaponType} list={list} />;
+  const navigate = useNavigate();
+  const matchRoute = useMatchRoute();
+  const detailMatch = matchRoute({ to: "/weapons/$weaponType/$weaponId", fuzzy: false });
+
+  return (
+    <>
+      <WeaponTypePage
+        weaponType={weaponType}
+        list={list}
+        selectedWeaponId={detailMatch ? Number(detailMatch.weaponId) : undefined}
+        onSelectWeapon={(weapon: WeaponIndexItem) => {
+          void navigate({
+            to: "/weapons/$weaponType/$weaponId",
+            params: { weaponType: weaponType.id, weaponId: String(weapon.id) },
+          });
+        }}
+      />
+      <Outlet />
+    </>
+  );
 }
