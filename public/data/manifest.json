@@ -1,6 +1,6 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-09T13:57:59.388Z",
+  "generatedAt": "2026-10-09T23:51:39.921Z",
   "datasets": [
     {
       "id": "weapons/great_sword/row",
@@ -213,11 +213,18 @@
       "keys": 19
     },
     {
-      "id": "monsters",
-      "file": "monsters.json.gz",
+      "id": "monsters/row",
+      "file": "monsters/row.json.gz",
       "bytes": 743464,
       "rawBytes": 12038401,
       "keys": 20
+    },
+    {
+      "id": "monsters/index",
+      "file": "monsters/index.json.gz",
+      "bytes": 2527,
+      "rawBytes": 11570,
+      "keys": 78
     },
     {
       "id": "quests",

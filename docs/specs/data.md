@@ -40,24 +40,24 @@ MHRS Database が配信するデータ（`public/data/`）の仕様をまとめ�
 ```
 
 - `datasets[].id` は拡張子なしの出力 id、`file` は実ファイルパス、`bytes`/`rawBytes` は gzip 後／前のバイト数、`keys` は配列なら要素数・オブジェクトならキー数。
-- **武器 1 件ごとの詳細（`weapons/<type>/<id>`）は `listed: false` として manifest に含めない**（数千ファイルになるため）。存在は `index` の `id` から辿れる。
+- **武器 1 件ごとの詳細（`weapons/<type>/<id>`）とモンスター 1 体ごとの詳細（`monsters/<id>`）は `listed: false` として manifest に含めない**（多数のファイルになるため）。存在は各 `index` の `id` から辿れる。
 
 ## 4. データセット一覧
 
 `scripts/etl/datasets/index.ts` に登録されたカテゴリのみ出力される（未登録のトップレベルキーは破棄）。
 
-| データセット | ファイル               | 内容                               |
-| ------------ | ---------------------- | ---------------------------------- |
-| weapons      | `weapons/**`           | 武器（本ドキュメントの主対象。§5） |
-| armor_skills | `armor_skills.json.gz` | 防具・スキル・装飾品・百竜スキル   |
-| items        | `items.json.gz`        | アイテム・素材・調合・虫           |
-| monsters     | `monsters.json.gz`     | モンスター・小型モンスター・図鑑   |
-| quests       | `quests.json.gz`       | クエスト・報酬・供給               |
+| データセット | ファイル               | 内容                             |
+| ------------ | ---------------------- | -------------------------------- |
+| weapons      | `weapons/**`           | 武器（§5）                       |
+| armor_skills | `armor_skills.json.gz` | 防具・スキル・装飾品・百竜スキル |
+| items        | `items.json.gz`        | アイテム・素材・調合・虫         |
+| monsters     | `monsters/**`          | モンスター（§6）                 |
+| quests       | `quests.json.gz`       | クエスト・報酬・供給             |
 
-weapons 以外は **ゲーム内部テーブルをスリム化しただけ**の構造（トップレベルは元のキーをそのまま保持）。主なトップレベルキー:
+weapons / monsters 以外は **ゲーム内部テーブルをスリム化しただけ**の構造（トップレベルは元のキーをそのまま保持）。主なトップレベルキー:
 
 - items: `items`, `items_name_msg`, `items_explain_msg`, `items_name_msg_mr`, `items_explain_msg_mr`, `material_category_msg`, `item_pop_lot`, `item_shop`, `item_mix`, `item_pack`, `insect*` ほか
-- monsters: `monsters`, `small_monsters`, `monster_names`, `monster_aliases`, `monster_explains`, `*_mr`, `monster_list`, `parts_type`, `species` ほか
+- monsters: `monsters`, `small_monsters`, `monster_names`, `monster_aliases`, `monster_explains`, `*_mr`, `monster_list`, `parts_type`, `species` ほか（§6 で一覧・詳細ファイルに再構成する）
 - quests: `normal_quest_data`, `normal_quest_data_mr`, `dl_quest_data*`, `difficulty_rate*`, `reward_id_lot_table*`, `arena_quest`, `progress` ほか
 - armor_skills: `armor`, `armor_series`, `armor_product`, `equip_skill`, `player_skill_*`, `hyakuryu_skill*`, `decorations*` ほか
 
@@ -388,7 +388,89 @@ items.toSorted((a, b) => (a.sort < b.sort ? -1 : a.sort > b.sort ? 1 : 0));
 const depth = item.path.length - 1;
 ```
 
-## 6. フロントエンド側
+## 6. モンスターデータ仕様
+
+### 6.1 ファイル構成
+
+```
+public/data/monsters/
+  row.json.gz        # 元の（ゲーム寄りの）構造。参考・再処理用
+  index.json.gz      # 一覧用の軽量インデックス
+  <id>.json.gz       # モンスター 1 体ごとの詳細（id = Em 値）
+```
+
+- `id` は `monsters[].em_type.Em`（内部一意 id）。ゲーム内の `monsters[].id`（モンスター種）と枝番 `sub_id` は詳細に `species_id` / `sub_id` として保持する。
+- 名前を持たないテスト用レコード（`em = 131`）は一覧・詳細から除外する。
+- 一覧・詳細は `data.monsters` を母集合とし、図鑑の並び（`enemy_type`）で整列する。
+
+### 6.2 index スキーマ（`monsters/index.json.gz`）
+
+`MonsterIndexItem[]`（`enemy_type` 昇順＝図鑑の並び）。
+
+| フィールド   | 型             | 説明                                               |
+| ------------ | -------------- | -------------------------------------------------- |
+| `id`         | number         | モンスター id（Em 値。詳細ファイル名・ルートキー） |
+| `name`       | string         | モンスター名（日本語）                             |
+| `alias`      | string \| null | 異名（日本語）                                     |
+| `family`     | string \| null | 種族（例: `飛竜種`。§6.4）                         |
+| `rank`       | number \| null | 危険度（`enemy_rank`、1〜10）                      |
+| `base_size`  | number \| null | サイズの基準値（`size_list`）                      |
+| `enemy_type` | number         | 図鑑の並びインデックス（`EnemyIndex<n>` の n）     |
+
+### 6.3 detail スキーマ（`monsters/<id>.json.gz`）
+
+`data.monsters` の 1 行を正規化（§6.5）し、名称・異名・図鑑説明・種族・危険度・サイズ・図鑑メタを join した 1 オブジェクト。
+
+**join フィールド**
+
+| フィールド    | 型             | 説明                                                                                                    |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| `id`          | number         | モンスター id（Em 値）                                                                                  |
+| `species_id`  | number         | ゲーム内モンスター id（`monsters[].id`）                                                                |
+| `sub_id`      | number         | 枝番（亜種・希少種など）                                                                                |
+| `enemy_type`  | number         | 図鑑の並びインデックス                                                                                  |
+| `name`        | string \| null | 名前（`monster_names` / `*_mr`）                                                                        |
+| `alias`       | string \| null | 異名（`monster_aliases` / `*_mr`）                                                                      |
+| `description` | string[]       | 図鑑説明（`monster_explains` / `*_mr` をページ順に結合、タグ除去済み）                                  |
+| `family`      | string \| null | 種族表示名（§6.4）                                                                                      |
+| `rank`        | number \| null | 危険度（`enemy_rank`）                                                                                  |
+| `size`        | object \| null | `size_list` の 1 件（`base_size` / `small_boarder` / `big_boarder` / `king_boarder` / `no_size_scale`） |
+| `list`        | object \| null | `monster_list` の 1 件（`family_type` / `habitat_area` / `part_table_data` ほか）                       |
+
+**生データ（正規化のみ）**
+
+| フィールド                | 説明                                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `data_base` / `data_tune` | 基礎・調整値（体力 `base_hp_vital` / `master_hp_vital`、部位体力、重さ等）                                        |
+| `meat_data`               | 肉質。`meat_container[i].meat_group_info[j]` が部位 i・状態 j の弱点値（§6.3.1）                                  |
+| `condition_damage_data`   | 状態異常耐性（`*_data.default_stock` に初期耐性・上昇・最大、`active_time` に効果時間）                           |
+| `collider_mapping`        | `meat_map`（肉質インデックス → 部位名）/ `part_map`                                                               |
+| その他                    | `anger_data` / `stamina_data` / `parts_break_data` / `drop_item` / `parts_break_reward` / `ecological` などを保持 |
+
+#### 6.3.1 肉質（`meat_data` × `collider_mapping.meat_map`）
+
+- `meat_map` のキー（`"0"`〜）が `meat_container` のインデックスに対応し、値が部位名（例: `["A：頭部", "A：頭部_顎用（クグツ）"]`）。
+- `meat_container[i].meat_group_info[j]` が状態 j の肉質（`slash` / `strike` / `shell` / `fire` / `water` / `ice` / `elect` / `dragon` / `piyo`）。
+- 部位によっては状態を複数持つ（通常・怒り等）。`list.part_table_data` の `em_meat` / `em_meat_group_index` が図鑑の部位と対応する。
+
+### 6.4 種族（`family`）
+
+`monster_list[].family_type` は通常種を `Species`、MR 追加種（ゴア・マガラ系）を `MrSpecies` で持つ。ETL は対応するモンスターから逆引きした次の表で表示名に変換する。
+
+| キー        | 表示名 | キー          | 表示名 |
+| ----------- | ------ | ------------- | ------ |
+| `Species:1` | 海竜種 | `Species:9`   | 鳥竜種 |
+| `Species:2` | 牙獣種 | `Species:10`  | 飛竜種 |
+| `Species:3` | 牙竜種 | `Species:11`  | 古龍種 |
+| `Species:4` | 魚竜種 | `Species:12`  | 両生種 |
+| `Species:5` | 甲殻種 | `Species:13`  | 鋏角種 |
+| `Species:8` | 獣竜種 | `MrSpecies:0` | 古龍種 |
+
+### 6.5 正規化ルール
+
+武器と同じく、キーが 1 つだけのタグ付き union を値へ開く（`{ Em: 1 }` → `1`、`{ Normal: 519 }` → `519`）。`"None"` → `null`。対象タグは `Em` / `Ems` / `Normal`。
+
+## 7. フロントエンド側
 
 - **型・定数**: `src/shared/lib/weapons.ts`
   - `WeaponType` / `weaponTypes`（id・表示名・表示順）
@@ -409,11 +491,23 @@ const depth = item.path.length - 1;
   `HornIndexItem` として返す。
 - **ルーティング**: `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType` で
   `loadWeaponList` を呼び、`WeaponTypePage` に渡す。`/weapons` は先頭武器種へリダイレクト。
+- **モンスター**
+  - **型・定数**: `src/shared/lib/monsters.ts`（`MonsterIndexItem` / `MonsterDetail`、
+    `monsterHitzoneColumns` / `monsterStatusTypes`、`getMonsterPartLabel`）。
+  - **読み込み**: `src/pages/monsters/api/load-monster-list.ts` / `load-monster-detail.ts`
+    が `monsters/index` と `monsters/<id>` を読む。
+  - **一覧**: `src/pages/monsters/ui/MonstersPage.tsx` が詳細ページへのリンクを並べる。
+  - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・図鑑説明・
+    肉質（`MonsterHitzoneTable`）・状態異常耐性（`MonsterStatusTable`）を表示する。
+  - **ルーティング**: `src/app/routes/monsters.index.tsx` → `/monsters`（一覧）、
+    `src/app/routes/monsters.$monsterId.tsx` → `/monsters/$monsterId`（詳細）。
+    サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。
 
-## 7. 変更・再生成の手順
+## 8. 変更・再生成の手順
 
 1. `scripts/etl/datasets/*.ts` を編集。
 2. `vp run etl` で `public/data/` を再生成。
 3. `vp check` / `vp run fsd` / `vp run knip` / `vp build` を実行。
 
-> 注: `public/data/` は Git 管理下。武器 1 件ごとの詳細ファイルを含めると約 3,900 ファイルになる点に留意する。
+> 注: `public/data/` は Git 管理下。武器 1 件ごとの詳細（約 3,900 ファイル）と
+> モンスター 1 体ごとの詳細（約 80 ファイル）を含む点に留意する。

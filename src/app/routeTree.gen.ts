@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemsRouteImport } from './routes/items'
 import { Route as MonstersRouteImport } from './routes/monsters'
 import { Route as WeaponsRouteImport } from './routes/weapons'
+import { Route as MonstersIndexRouteImport } from './routes/monsters.index'
+import { Route as MonstersMonsterIdRouteImport } from './routes/monsters.$monsterId'
 import { Route as WeaponsIndexRouteImport } from './routes/weapons.index'
 import { Route as WeaponsWeaponTypeRouteImport } from './routes/weapons.$weaponType'
 
@@ -36,6 +38,16 @@ const WeaponsRoute = WeaponsRouteImport.update({
   path: '/weapons',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MonstersIndexRoute = MonstersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MonstersRoute,
+} as any)
+const MonstersMonsterIdRoute = MonstersMonsterIdRouteImport.update({
+  id: '/$monsterId',
+  path: '/$monsterId',
+  getParentRoute: () => MonstersRoute,
+} as any)
 const WeaponsIndexRoute = WeaponsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -50,25 +62,30 @@ const WeaponsWeaponTypeRoute = WeaponsWeaponTypeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/items': typeof ItemsRoute
-  '/monsters': typeof MonstersRoute
+  '/monsters': typeof MonstersRouteWithChildren
   '/weapons': typeof WeaponsRouteWithChildren
+  '/monsters/$monsterId': typeof MonstersMonsterIdRoute
   '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/monsters/': typeof MonstersIndexRoute
   '/weapons/': typeof WeaponsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/items': typeof ItemsRoute
-  '/monsters': typeof MonstersRoute
+  '/monsters/$monsterId': typeof MonstersMonsterIdRoute
   '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/monsters': typeof MonstersIndexRoute
   '/weapons': typeof WeaponsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/items': typeof ItemsRoute
-  '/monsters': typeof MonstersRoute
+  '/monsters': typeof MonstersRouteWithChildren
   '/weapons': typeof WeaponsRouteWithChildren
+  '/monsters/$monsterId': typeof MonstersMonsterIdRoute
   '/weapons/$weaponType': typeof WeaponsWeaponTypeRoute
+  '/monsters/': typeof MonstersIndexRoute
   '/weapons/': typeof WeaponsIndexRoute
 }
 export interface FileRouteTypes {
@@ -78,24 +95,34 @@ export interface FileRouteTypes {
     | '/items'
     | '/monsters'
     | '/weapons'
+    | '/monsters/$monsterId'
     | '/weapons/$weaponType'
+    | '/monsters/'
     | '/weapons/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/items' | '/monsters' | '/weapons/$weaponType' | '/weapons'
+  to:
+    | '/'
+    | '/items'
+    | '/monsters/$monsterId'
+    | '/weapons/$weaponType'
+    | '/monsters'
+    | '/weapons'
   id:
     | '__root__'
     | '/'
     | '/items'
     | '/monsters'
     | '/weapons'
+    | '/monsters/$monsterId'
     | '/weapons/$weaponType'
+    | '/monsters/'
     | '/weapons/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ItemsRoute: typeof ItemsRoute
-  MonstersRoute: typeof MonstersRoute
+  MonstersRoute: typeof MonstersRouteWithChildren
   WeaponsRoute: typeof WeaponsRouteWithChildren
 }
 
@@ -129,6 +156,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WeaponsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/monsters/': {
+      id: '/monsters/'
+      path: '/'
+      fullPath: '/monsters/'
+      preLoaderRoute: typeof MonstersIndexRouteImport
+      parentRoute: typeof MonstersRoute
+    }
+    '/monsters/$monsterId': {
+      id: '/monsters/$monsterId'
+      path: '/$monsterId'
+      fullPath: '/monsters/$monsterId'
+      preLoaderRoute: typeof MonstersMonsterIdRouteImport
+      parentRoute: typeof MonstersRoute
+    }
     '/weapons/': {
       id: '/weapons/'
       path: '/'
@@ -146,6 +187,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MonstersRouteChildren {
+  MonstersMonsterIdRoute: typeof MonstersMonsterIdRoute
+  MonstersIndexRoute: typeof MonstersIndexRoute
+}
+
+const MonstersRouteChildren: MonstersRouteChildren = {
+  MonstersMonsterIdRoute: MonstersMonsterIdRoute,
+  MonstersIndexRoute: MonstersIndexRoute,
+}
+
+const MonstersRouteWithChildren = MonstersRoute._addFileChildren(
+  MonstersRouteChildren,
+)
+
 interface WeaponsRouteChildren {
   WeaponsWeaponTypeRoute: typeof WeaponsWeaponTypeRoute
   WeaponsIndexRoute: typeof WeaponsIndexRoute
@@ -162,7 +217,7 @@ const WeaponsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ItemsRoute: ItemsRoute,
-  MonstersRoute: MonstersRoute,
+  MonstersRoute: MonstersRouteWithChildren,
   WeaponsRoute: WeaponsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
