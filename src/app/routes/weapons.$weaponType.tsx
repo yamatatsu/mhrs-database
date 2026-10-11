@@ -39,6 +39,7 @@ function WeaponTypeRoute() {
           void navigate({
             to: "/weapons/$weaponType/$weaponId",
             params: { weaponType: weaponType.id, weaponId: String(weapon.id) },
+            resetScroll: false,
           });
         }}
       />

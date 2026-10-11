@@ -44,17 +44,23 @@ export function WeaponDetailDrawer({
   return (
     <Sheet
       open
+      modal={false}
       onOpenChange={(open) => {
         if (!open) {
           void navigate({
             to: "/weapons/$weaponType",
             params: { weaponType: weaponType.id },
             replace: true,
+            resetScroll: false,
           });
         }
       }}
     >
-      <SheetContent side="right" className="data-[side=right]:w-full data-[side=right]:sm:max-w-md">
+      <SheetContent
+        side="right"
+        showOverlay={false}
+        className="data-[side=right]:w-full data-[side=right]:sm:max-w-md"
+      >
         <SheetHeader className="pr-10">
           <div className="flex flex-wrap items-center gap-2">
             <SheetTitle>{detail.name ?? "不明な武器"}</SheetTitle>
@@ -225,6 +231,7 @@ function WeaponLink({ weapon, weaponType }: { weapon: WeaponIndexItem; weaponTyp
     <Link
       to="/weapons/$weaponType/$weaponId"
       params={{ weaponType: weaponType.id, weaponId: String(weapon.id) }}
+      resetScroll={false}
       className="text-sm text-primary hover:underline"
     >
       {weapon.name}

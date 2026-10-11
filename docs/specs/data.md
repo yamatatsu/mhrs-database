@@ -501,6 +501,10 @@ public/data/monsters/
   基本情報（レア度 / 攻撃力 / 会心率 / 防御力 / 属性 / スロット / 切れ味）・説明・
   生産/強化/加工レシピ・派生ツリー（`prev` / `next` を一覧の名称でリンク）を表示する。
   モバイルは全幅（`data-[side=right]:w-full`）で表示する。
+  - 一覧を眺めながら詳細を開けるよう、非モーダル（`modal={false}`）かつ
+    オーバーレイなし（`showOverlay={false}`）で描画し、背面の一覧を操作できる。
+  - ドロワーを開く / ツリー遷移 / 閉じるナビゲーションは `resetScroll: false` を指定し、
+    一覧のスクロール位置を維持する（既定の `resetScroll: true` だと先頭へ戻ってしまう）。
 - **ルーティング**:
   - `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType`（一覧）。
     `loadWeaponList` を呼び `WeaponTypePage` に渡しつつ、`<Outlet />` で子ルートを重ねる。
