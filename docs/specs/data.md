@@ -658,6 +658,9 @@ public/data/items/
   - **一覧**: `src/pages/monsters/ui/MonstersPage.tsx` が詳細ページへのリンクを並べる。
   - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・図鑑説明・
     肉質（`MonsterHitzoneTable`）・状態異常耐性（`MonsterStatusTable`）を表示する。
+  - **肉質の表示**: `src/pages/monsters/model/hitzone.ts` の `buildMonsterHitzoneRows` が
+    部位（`meat_map`）ごとに相（`meat_group_info`）を畳む。全相で同値なら単一値、
+    1 つでも異なれば相の順に `/` 区切り（`formatMonsterHitzoneValue`）で表示する。
   - **ルーティング**: `src/app/routes/monsters.index.tsx` → `/monsters`（一覧）、
     `src/app/routes/monsters.$monsterId.tsx` → `/monsters/$monsterId`（詳細）。
     サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。
