@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui";
-import type { ItemDetail, ItemMixRecipe, ItemMixUsage, ItemShopEntry } from "../model/items";
+import {
+  itemRankLabels,
+  itemRewardKindLabels,
+  type ItemDetail,
+  type ItemGatherSource,
+  type ItemMixRecipe,
+  type ItemMixUsage,
+  type ItemMonsterReward,
+  type ItemRank,
+  type ItemShopEntry,
+} from "../model/items";
 
 interface ItemDetailPageProps {
   detail: ItemDetail;
@@ -56,6 +66,18 @@ export function ItemDetailPage({ detail }: ItemDetailPageProps) {
       {detail.mix_as_ingredient.length > 0 ? (
         <Section title="このアイテムを使う調合">
           <MixAsIngredientTable name={detail.name} usages={detail.mix_as_ingredient} />
+        </Section>
+      ) : null}
+
+      {detail.monster_rewards.length > 0 ? (
+        <Section title="モンスター報酬">
+          <MonsterRewardsTable rewards={detail.monster_rewards} />
+        </Section>
+      ) : null}
+
+      {detail.gather_sources.length > 0 ? (
+        <Section title="フィールド採取">
+          <GatherSources sources={detail.gather_sources} />
         </Section>
       ) : null}
 
@@ -149,5 +171,80 @@ function ShopInfo({ shop }: { shop: ItemShopEntry }) {
         "雑貨屋で最初から購入可能"
       )}
     </p>
+  );
+}
+
+/** モンスター報酬の一覧。モンスター詳細があるものは名前をリンクにする。 */
+function MonsterRewardsTable({ rewards }: { rewards: readonly ItemMonsterReward[] }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>モンスター</TableHead>
+          <TableHead>ランク</TableHead>
+          <TableHead>報酬</TableHead>
+          <TableHead className="text-right">個数</TableHead>
+          <TableHead className="text-right">確率</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rewards.flatMap((reward) =>
+          reward.rewards.map((entry, index) => (
+            <TableRow key={`${reward.monster_id}-${reward.rank}-${entry.kind}-${index}`}>
+              <TableCell className="font-medium">
+                {index === 0 ? <MonsterName reward={reward} /> : null}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {index === 0 ? itemRankLabels[reward.rank] : null}
+              </TableCell>
+              <TableCell>{itemRewardKindLabels[entry.kind]}</TableCell>
+              <TableCell className="text-right">×{entry.num}</TableCell>
+              <TableCell className="text-right tabular-nums">{entry.probability}%</TableCell>
+            </TableRow>
+          )),
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function MonsterName({ reward }: { reward: ItemMonsterReward }) {
+  if (!reward.linkable) return <span>{reward.monster_name}</span>;
+  return (
+    <Link
+      to="/monsters/$monsterId"
+      params={{ monsterId: String(reward.monster_id) }}
+      className="text-primary hover:underline"
+    >
+      {reward.monster_name}
+    </Link>
+  );
+}
+
+/** フィールド採取の一覧。ランクごとにマップと採取確率を並べる。 */
+function GatherSources({ sources }: { sources: readonly ItemGatherSource[] }) {
+  const byRank = new Map<ItemRank, ItemGatherSource[]>();
+  for (const source of sources) {
+    const list = byRank.get(source.rank) ?? [];
+    list.push(source);
+    byRank.set(source.rank, list);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {[...byRank].map(([rank, list]) => (
+        <div key={rank} className="flex flex-wrap items-center gap-1">
+          <span className="w-14 text-xs text-muted-foreground">{itemRankLabels[rank]}</span>
+          {list.map((source) => (
+            <Badge key={source.map} variant="outline" className="gap-1">
+              {source.map}
+              <span className="text-muted-foreground">
+                {source.probabilities.map((probability) => `${probability}%`).join("/")}
+              </span>
+            </Badge>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }

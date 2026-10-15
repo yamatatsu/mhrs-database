@@ -21,8 +21,13 @@ export interface Dataset {
   name: string;
   /** mhrice.json のトップレベルキーをこのカテゴリが引き受けるかどうか。 */
   match: (key: string) => boolean;
-  /** スリム化・テスト除外・最適化の本体。出力ファイルの一覧を返す。 */
-  transform: (group: Record<string, unknown>) => DatasetFile[];
+  /**
+   * スリム化・テスト除外・最適化の本体。出力ファイルの一覧を返す。
+   * `group` は `match` が引き受けたキーだけを集めたバケット。
+   * `raw` は mhrice.json 全体で、他カテゴリのキーを横断参照する場合に使う
+   * （例: items の「入手方法」は monster_lot / maps を参照する）。
+   */
+  transform: (group: Record<string, unknown>, raw: Record<string, unknown>) => DatasetFile[];
 }
 
 /** manifest.json に記録する 1 出力ファイル分のメタ情報。 */

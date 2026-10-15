@@ -46,14 +46,14 @@ MHRS Database が配信するデータ（`public/data/`）の仕様をまとめ�
 
 `scripts/etl/datasets/index.ts` に登録されたカテゴリのみ出力される（未登録のトップレベルキーは破棄）。
 
-| データセット         | ファイル                       | 内容                               |
-| -------------------- | ------------------------------ | ---------------------------------- |
-| weapons              | `weapons/**`                   | 武器（§5）                         |
-| armor_skills         | `armor_skills.json.gz`         | 防具・スキル・装飾品・百竜スキル   |
-| hyakuryu_skill_names | `hyakuryu_skill_names.json.gz` | 百竜スキル id → 日本語名（§5.4.5） |
-| items                | `items/**`                     | アイテム・素材・調合（§7）         |
-| monsters             | `monsters/**`                  | モンスター（§6）                   |
-| quests               | `quests.json.gz`               | クエスト・報酬・供給               |
+| データセット         | ファイル                       | 内容                                                         |
+| -------------------- | ------------------------------ | ------------------------------------------------------------ |
+| weapons              | `weapons/**`                   | 武器（§5）                                                   |
+| armor_skills         | `armor_skills.json.gz`         | 防具・スキル・装飾品・百竜スキル                             |
+| hyakuryu_skill_names | `hyakuryu_skill_names.json.gz` | 百竜スキル id → 日本語名（§5.4.5）                           |
+| items                | `items/**`                     | アイテム・素材・調合（§7・[data-items.md](./data-items.md)） |
+| monsters             | `monsters/**`                  | モンスター（§6）                                             |
+| quests               | `quests.json.gz`               | クエスト・報酬・供給                                         |
 
 weapons / monsters / items 以外は **ゲーム内部テーブルをスリム化しただけ**の構造（トップレベルは元のキーをそのまま保持）。主なトップレベルキー:
 
@@ -559,43 +559,14 @@ public/data/monsters/
 
 ## 7. アイテムデータ仕様
 
-### 7.1 ファイル構成
+ファイル構成・分類・詳細項目・入手方法（モンスター報酬 / フィールド採取）は
+[data-items.md](./data-items.md) に分離した。要点:
 
-```
-public/data/items/
-  row.json.gz              # 元の（ゲーム寄りの）構造。参考・再処理用
-  index.json.gz            # 一覧用の軽量インデックス（図鑑順）
-  <アイテム id>.json.gz    # アイテム 1 件ごとの詳細
-```
-
-- `row`: 名称を持たない内部行・「なし」を除去した元構造（§2 の前処理後）。武器のレシピ素材名の解決（§8 の `loadItemNames`）もこのファイルを読む。
-- `index`: 一覧ページが読む唯一のファイル（1,764 件）。`id` / `name` / `rare` / `type` / `pl_max_count` / `sell_price` / `buy_price` / `craftable`。
-- `<id>`: 詳細ページ用。名称・説明・素材カテゴリ・調合・購入条件を join 済み。
-
-### 7.2 分類（`type_`）
-
-`type_` は表示名へ解決する（未知の種別は生の値にフォールバック）。
-
-| `type_`           | 表示名 | 件数  |
-| ----------------- | ------ | ----- |
-| `Material`        | 素材   | 1,199 |
-| `OffcutsMaterial` | 端材   | 150   |
-| `Antique`         | 骨董品 | 142   |
-| `PayOff`          | 換金   | 108   |
-| `Consume`         | 消耗品 | 77    |
-| `Bullet`          | 弾     | 59    |
-| `CarryPayOff`     | 運搬   | 19    |
-| `Bottle`          | ビン   | 7     |
-| `Tool`            | 道具   | 3     |
-
-### 7.3 詳細ファイルの項目
-
-- 基本: `id` / `name` / `rare` / `type` / `pl_max_count` / `sell_price` / `buy_price`。
-- `material_categories`: 素材カテゴリ名（例: "鉱石素材"・"鎌鼬竜素材"）。`items.param` の `material_category` はタグ付き union で、`{ LrHr: v }` → `material_category_msg` の `ICT_Name_<v + 1>`、`{ Mr: v }` → `material_category_msg_mr` の `ICT_Name_<v + 200>` に対応する。
-- `description`: 説明文（リッチテキストタグ除去済み）。無い場合は `null`。
-- `mix_as_product`: このアイテムを作る調合レシピ（材料名・完成品の個数）。`item_mix` から解決。
-- `mix_as_ingredient`: このアイテムを材料に使う調合レシピ（相方の材料名・完成品名・個数）。
-- `shop`: 雑貨屋の購入条件（`village` / `hall` / `mr` の★進度）。`item_shop` に無い場合は `null`。
+- `items/row`（元構造） / `items/index`（一覧、1,764 件） / `items/<id>`（詳細、manifest 非掲載）。
+- 詳細には名称・説明・素材カテゴリ・調合（`mix_*`）・購入（`shop`）に加え、入手方法の
+  `monster_rewards` / `gather_sources` を含む（[data-items.md](./data-items.md) §5・§6）。
+- `items` の `transform` は他カテゴリのキー（`monster_lot*` / `maps` 等）を横断参照するため、
+  `Dataset.transform(group, raw)` の第 2 引数に mhrice.json 全体が渡される（§4）。
 
 ## 8. フロントエンド側
 
@@ -666,14 +637,16 @@ public/data/items/
     サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。
 - **アイテム**
   - **型**: `src/pages/items/model/items.ts`（`ItemIndexItem` / `ItemDetail`、
-    `ItemMixRecipe` / `ItemMixUsage` / `ItemShopEntry`）。
+    `ItemMixRecipe` / `ItemMixUsage` / `ItemShopEntry` / `ItemMonsterReward` /
+    `ItemGatherSource`、`itemRankLabels` / `itemRewardKindLabels`）。
   - **読み込み**: `src/pages/items/api/load-item-list.ts` / `load-item-detail.ts`
     が `items/index` と `items/<id>` を読む。
   - **一覧**: `src/pages/items/ui/ItemsPage.tsx` が名前の部分一致検索・分類フィルタ付きの
     `DataTable` を表示する。カラムは `item-columns.tsx`（名前 / レア度 / 分類 / 所持上限 /
     売値 / 調合）。行クリックで詳細へ遷移する。
   - **詳細**: `src/pages/items/ui/ItemDetailPage.tsx` が基本情報・素材カテゴリ・説明・
-    調合（このアイテムを作る／使う）・雑貨屋の購入条件を表示する。
+    調合（このアイテムを作る／使う）・モンスター報酬・フィールド採取・雑貨屋の購入条件を
+    表示する（入手方法の詳細は [data-items.md](./data-items.md) §5・§6）。
   - **ルーティング**: `src/app/routes/items.index.tsx` → `/items`（一覧）、
     `src/app/routes/items.$itemId.tsx` → `/items/$itemId`（詳細）。
 
