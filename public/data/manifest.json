@@ -1,6 +1,6 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-09T23:51:39.921Z",
+  "generatedAt": "2026-10-11T13:14:49.940Z",
   "datasets": [
     {
       "id": "weapons/great_sword/row",
@@ -180,8 +180,8 @@
     {
       "id": "weapons/light_bowgun/index",
       "file": "weapons/light_bowgun/index.json.gz",
-      "bytes": 5769,
-      "rawBytes": 47996,
+      "bytes": 6792,
+      "rawBytes": 67903,
       "keys": 256
     },
     {
@@ -206,11 +206,25 @@
       "keys": 50
     },
     {
-      "id": "items",
-      "file": "items.json.gz",
+      "id": "hyakuryu_skill_names",
+      "file": "hyakuryu_skill_names.json.gz",
+      "bytes": 2015,
+      "rawBytes": 8554,
+      "keys": 281
+    },
+    {
+      "id": "items/row",
+      "file": "items/row.json.gz",
       "bytes": 200739,
       "rawBytes": 1739930,
       "keys": 19
+    },
+    {
+      "id": "items/index",
+      "file": "items/index.json.gz",
+      "bytes": 24142,
+      "rawBytes": 237155,
+      "keys": 1764
     },
     {
       "id": "monsters/row",

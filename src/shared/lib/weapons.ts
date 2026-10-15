@@ -156,6 +156,26 @@ export interface WeaponDetail {
   readonly sharpness_val_list?: readonly number[];
   /** 装飾品スロットの段数（0 は空き）。 */
   readonly slot_num_list: readonly number[];
+  /** 百竜スロットの段数（0 は空き）。 */
+  readonly hyakuryu_slot_num_list?: readonly number[];
+  /** 百竜スキル id（`null` は空き）。 */
+  readonly hyakuryu_skill_id_list?: readonly (number | null)[];
+  /** ガンナー共通のブレ（`Fluctuation`）。`null` はブレなし。ライト・ヘビィのみ。 */
+  readonly fluctuation?: string | null;
+  /** ガンナー共通のリロード速度（数値。大きいほど速い）。ライト・ヘビィのみ。 */
+  readonly reload?: number;
+  /** ガンナー共通の反動（数値。大きいほど大きい）。ライト・ヘビィのみ。 */
+  readonly recoil?: number;
+  /** 速射する弾（BulletType 名）。ライトボウガンのみ。`null` は空き枠。 */
+  readonly rapid_shot_list?: readonly (string | null)[];
+  /** 特殊弾（BulletType 名）。ライトボウガンは `Setti`（起爆竜弾）。 */
+  readonly unique_bullet?: string;
+  /** 弾種ごとの装填可否。添字は `BulletType`（§5.4.4）。 */
+  readonly bullet_equip_flag_list?: readonly boolean[];
+  /** 弾種ごとの装填数（`bullet_equip_flag_list` と同じ並び）。 */
+  readonly bullet_num_list?: readonly number[];
+  /** 弾種ごとの射撃タイプ（`ShootType` 名）。`null` は射撃タイプなし。 */
+  readonly bullet_type_list?: readonly (string | null)[];
   readonly recipes: WeaponRecipes;
   readonly tree: WeaponTree | null;
 }
@@ -177,4 +197,201 @@ export function getWeaponDetailElements(detail: WeaponDetail): readonly WeaponEl
     elements.push({ type: detail.sub_element_type as WeaponElementType, value: subValue });
   }
   return elements;
+}
+
+/**
+ * 弾種（`BulletType`）の並び。添字が `bullet_equip_flag_list` / `bullet_num_list` /
+ * `bullet_type_list` の添字に対応する。出典: mhrice の `BulletType`（§5.4.4）。
+ */
+const weaponBulletTypes = [
+  "None",
+  "Normal1",
+  "Normal2",
+  "Normal3",
+  "Kantsu1",
+  "Kantsu2",
+  "Kantsu3",
+  "SanW1",
+  "SanW2",
+  "SanW3",
+  "SanO1",
+  "SanO2",
+  "SanO3",
+  "Tekko1",
+  "Tekko2",
+  "Tekko3",
+  "Kakusan1",
+  "Kakusan2",
+  "Kakusan3",
+  "Poison1",
+  "Poison2",
+  "Paralyze1",
+  "Paralyze2",
+  "Sleep1",
+  "Sleep2",
+  "Genki1",
+  "Genki2",
+  "Heal1",
+  "Heal2",
+  "Kijin",
+  "Kouka",
+  "Fire",
+  "FireKantsu",
+  "Water",
+  "WaterKantsu",
+  "Ice",
+  "IceKantsu",
+  "Thunder",
+  "ThunderKantsu",
+  "Dragon",
+  "DragonKantsu",
+  "Zanretsu",
+  "Ryugeki",
+  "Capture",
+  "Setti",
+  "Gatling",
+  "Snipe",
+  "GatlingHeal",
+  "SnipeHeal",
+  "WireBullet",
+  "FullAuto",
+  "Max",
+] as const;
+
+/** 弾種（`BulletType`）の表示名。実在する弾種のみ日本語名を持ち、他は生の表記にフォールバックする。 */
+const weaponBulletLabels = new Map<string, string>([
+  ["Normal1", "通常弾1"],
+  ["Normal2", "通常弾2"],
+  ["Normal3", "通常弾3"],
+  ["Kantsu1", "貫通弾1"],
+  ["Kantsu2", "貫通弾2"],
+  ["Kantsu3", "貫通弾3"],
+  ["SanW1", "散弾1"],
+  ["SanW2", "散弾2"],
+  ["SanW3", "散弾3"],
+  ["SanO1", "放散弾1"],
+  ["SanO2", "放散弾2"],
+  ["SanO3", "放散弾3"],
+  ["Tekko1", "徹甲榴弾1"],
+  ["Tekko2", "徹甲榴弾2"],
+  ["Tekko3", "徹甲榴弾3"],
+  ["Kakusan1", "拡散弾1"],
+  ["Kakusan2", "拡散弾2"],
+  ["Kakusan3", "拡散弾3"],
+  ["Poison1", "毒弾1"],
+  ["Poison2", "毒弾2"],
+  ["Paralyze1", "麻痺弾1"],
+  ["Paralyze2", "麻痺弾2"],
+  ["Sleep1", "睡眠弾1"],
+  ["Sleep2", "睡眠弾2"],
+  ["Genki1", "減気弾1"],
+  ["Genki2", "減気弾2"],
+  ["Heal1", "回復弾1"],
+  ["Heal2", "回復弾2"],
+  ["Kijin", "鬼人弾"],
+  ["Kouka", "硬化弾"],
+  ["Fire", "火炎弾"],
+  ["FireKantsu", "貫通火炎弾"],
+  ["Water", "水冷弾"],
+  ["WaterKantsu", "貫通水冷弾"],
+  ["Ice", "氷結弾"],
+  ["IceKantsu", "貫通氷結弾"],
+  ["Thunder", "電撃弾"],
+  ["ThunderKantsu", "貫通電撃弾"],
+  ["Dragon", "滅龍弾"],
+  ["DragonKantsu", "貫通滅龍弾"],
+  ["Zanretsu", "斬裂弾"],
+  ["Ryugeki", "竜撃弾"],
+  ["Capture", "捕獲用麻酔弾"],
+  ["Setti", "起爆竜弾"],
+]);
+
+/** 弾種（`BulletType`）の表示名を引く。未知の種別はそのまま返す。 */
+export function getWeaponBulletLabel(type: string): string {
+  return weaponBulletLabels.get(type) ?? type;
+}
+
+/** ブレ（`Fluctuation`）の表示名。`null` はブレなし。 */
+const weaponFluctuationLabels = new Map<string, string>([
+  ["LeftLittle", "左小"],
+  ["LeftMuch", "左大"],
+  ["RightLittle", "右小"],
+  ["RightMuch", "右大"],
+  ["RightAndLeftLittle", "左右小"],
+  ["RightAndLeftMuch", "左右大"],
+]);
+
+/** ブレ（`Fluctuation`）の表示名を引く。`null` は「なし」。 */
+export function getWeaponFluctuationLabel(type: string | null | undefined): string {
+  if (type === null || type === undefined) return "なし";
+  return weaponFluctuationLabels.get(type) ?? type;
+}
+
+/** 弾の射撃タイプ（`ShootType`）。移動射撃・移動装填・自動装填の可否。 */
+export interface WeaponShotType {
+  readonly movingShot: boolean;
+  readonly movingReload: boolean;
+  readonly singleAuto: boolean;
+}
+
+/** `ShootType` 名 → 射撃タイプの可否。 */
+const weaponShotTypes: Record<string, WeaponShotType> = {
+  None: { movingShot: false, movingReload: false, singleAuto: false },
+  MovingShot: { movingShot: true, movingReload: false, singleAuto: false },
+  MovingShotReload: { movingShot: true, movingReload: true, singleAuto: false },
+  MovingShotSingleAuto: { movingShot: true, movingReload: false, singleAuto: true },
+  MovingReload: { movingShot: false, movingReload: true, singleAuto: false },
+  MovingReloadSingleAuto: { movingShot: false, movingReload: true, singleAuto: true },
+  SingleAuto: { movingShot: false, movingReload: false, singleAuto: true },
+  MovingShotReloadSingleAuto: { movingShot: true, movingReload: true, singleAuto: true },
+};
+
+/** 弾の射撃タイプを引く。未知・未指定は全て false。 */
+export function getWeaponShotType(type: string | null | undefined): WeaponShotType {
+  if (type === null || type === undefined) {
+    return { movingShot: false, movingReload: false, singleAuto: false };
+  }
+  return weaponShotTypes[type] ?? { movingShot: false, movingReload: false, singleAuto: false };
+}
+
+/** 弾テーブル 1 行（装填可能な弾 1 種）。 */
+export interface WeaponBullet {
+  /** BulletType 名。 */
+  readonly type: string;
+  /** 弾種の表示名。 */
+  readonly name: string;
+  /** 装填数。 */
+  readonly capacity: number;
+  /** 射撃タイプ。 */
+  readonly shotType: WeaponShotType;
+  /** 速射する弾か。 */
+  readonly rapid: boolean;
+}
+
+/**
+ * 武器詳細から装填可能な弾（`bullet_equip_flag_list` が `true` の弾）を
+ * `BulletType` の並び順でまとめる。ガンナー以外は空配列。
+ */
+export function getWeaponBullets(detail: WeaponDetail): readonly WeaponBullet[] {
+  const flags = detail.bullet_equip_flag_list;
+  if (!flags) return [];
+  const nums = detail.bullet_num_list ?? [];
+  const types = detail.bullet_type_list ?? [];
+  const rapid = new Set(
+    (detail.rapid_shot_list ?? []).filter((value): value is string => typeof value === "string"),
+  );
+  const bullets: WeaponBullet[] = [];
+  flags.forEach((equipped, index) => {
+    if (!equipped) return;
+    const type = weaponBulletTypes[index];
+    if (type === undefined) return;
+    bullets.push({
+      type,
+      name: getWeaponBulletLabel(type),
+      capacity: nums[index] ?? 0,
+      shotType: getWeaponShotType(types[index] ?? null),
+      rapid: rapid.has(type),
+    });
+  });
+  return bullets;
 }

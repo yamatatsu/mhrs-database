@@ -27,11 +27,11 @@ function collectNames(container: unknown, pattern: RegExp, out: Record<number, s
 }
 
 /**
- * レシピ素材の id → 名称テーブルを `items` データから構築する。
+ * レシピ素材の id → 名称テーブルを `items/row`（アイテムの元構造）から構築する。
  * `loadDataset` のメモリキャッシュにより、2 回目以降は再取得しない。
  */
 export async function loadItemNames(): Promise<ItemNameTable> {
-  const data = await loadDataset<Record<string, unknown>>("items");
+  const data = await loadDataset<Record<string, unknown>>("items/row");
   const items: Record<number, string> = {};
   const materialCategories: Record<number, string> = {};
   collectNames(data.items_name_msg, ITEM_NAME_RE, items);

@@ -2,6 +2,7 @@ import type { WeaponIndexItem, WeaponType } from "@/shared/lib";
 import { DataTable } from "@/shared/ui";
 import type { WeaponListData } from "../api/load-weapon-list";
 import { getHornColumns } from "./horn-columns";
+import { getLightBowgunColumns } from "./light-bowgun-columns";
 import { getWeaponColumns } from "./weapon-columns";
 
 interface WeaponTypePageProps {
@@ -39,6 +40,13 @@ export function WeaponTypePage({
         <DataTable
           key={weaponType.id}
           columns={getHornColumns()}
+          data={list.items}
+          {...rowInteraction}
+        />
+      ) : list.kind === "light_bowgun" ? (
+        <DataTable
+          key={weaponType.id}
+          columns={getLightBowgunColumns()}
           data={list.items}
           {...rowInteraction}
         />

@@ -31,7 +31,7 @@ async function decodeBody(arrayBuffer: ArrayBuffer): Promise<string> {
 
 /**
  * データを取得する。`id` は `public/data/` 配下の拡張子なしパス
- * （例: "weapons/great_sword", "items"）。初回のみ通信し、以降はキャッシュを返す。
+ * （例: "weapons/great_sword/index", "items/index"）。初回のみ通信し、以降はキャッシュを返す。
  * 必要なページで必要な分だけを呼び出す想定。
  */
 export function loadDataset<T = DatasetData>(id: string): Promise<T> {

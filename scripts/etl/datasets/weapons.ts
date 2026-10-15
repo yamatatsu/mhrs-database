@@ -109,7 +109,7 @@ function buildFiles(group: Record<string, unknown>): DatasetFile[] {
     }
 
     files.push({ id: `weapons/${weaponType}/row`, data });
-    files.push({ id: `weapons/${weaponType}/index`, data: buildIndex(data) });
+    files.push({ id: `weapons/${weaponType}/index`, data: buildIndex(weaponType, data) });
     files.push(...buildDetails(weaponType, data));
   }
 
@@ -117,7 +117,7 @@ function buildFiles(group: Record<string, unknown>): DatasetFile[] {
 }
 
 /** 一覧用インデックス（軽量）。武器名ページはこれだけを読む。 */
-function buildIndex(data: Record<string, unknown>): unknown[] {
+function buildIndex(weaponType: string, data: Record<string, unknown>): unknown[] {
   const names = buildEntryNameMap(data, ["name", "name_mr"], NAME_RE);
   // 狩猟笛の旋律マスタ（melody / melody_mr）。他武器種では空マップになる。
   const melodyNames = buildEntryNameMap(data, ["melody", "melody_mr"], MELODY_NAME_RE);
@@ -151,9 +151,11 @@ function buildIndex(data: Record<string, unknown>): unknown[] {
     // 狩猟笛の旋律（`horn_melody_type_list` は狩猟笛のレコードにのみ存在する）。
     // 一覧が index だけで旋律を表示できるよう、名称まで解決して join する（data.md §5.4）。
     const melodyIds = asArray(record.horn_melody_type_list);
-    return [
-      melodyIds.length > 0 ? { ...base, melodies: weaponMelodies(melodyIds, melodyNames) } : base,
-    ];
+    const melodies =
+      melodyIds.length > 0 ? { melodies: weaponMelodies(melodyIds, melodyNames) } : {};
+    // ライトボウガンのガンナー性能（速射・ブレ・リロード・反動）。一覧のカラムで使う（data.md §5.4.4）。
+    const gunner = weaponType === "light_bowgun" ? gunnerIndexFields(record) : {};
+    return [{ ...base, ...melodies, ...gunner }];
   });
 
   // 既定は派生ツリーの前順（親 → 子孫、兄弟は next 順）で並べる。
@@ -388,6 +390,35 @@ function weaponElements(record: Record<string, unknown>): WeaponElement[] {
 /** 数値配列を安全に取り出す（非数値は 0、配列以外は空配列）。 */
 function numberList(value: unknown): number[] {
   return asArray(value).map((item) => asNumber(item) ?? 0);
+}
+
+/** 一覧インデックスに載せるガンナー（ライトボウガン）固有フィールド。 */
+interface GunnerIndexFields {
+  /** 速射する弾（BulletType 名）。速射なしは空配列。 */
+  rapid_fire: string[];
+  /** ブレ（`Fluctuation`）。`null` はブレなし。 */
+  deviation: string | null;
+  /** リロード速度（数値。大きいほど速い）。 */
+  reload: number;
+  /** 反動（数値。大きいほど大きい）。 */
+  recoil: number;
+}
+
+/**
+ * ボウガンのレコードから一覧用のガンナー性能を取り出す。
+ * `rapid_shot_list` / `fluctuation` / `reload` / `recoil` は `base` 直下にあり、
+ * `normalize` 済みなので `"None"` は `null` になっている。
+ */
+function gunnerIndexFields(record: Record<string, unknown>): GunnerIndexFields {
+  const rapidFire = asArray(record.rapid_shot_list).flatMap((value) =>
+    typeof value === "string" ? [value] : [],
+  );
+  return {
+    rapid_fire: rapidFire,
+    deviation: typeof record.fluctuation === "string" ? record.fluctuation : null,
+    reload: asNumber(record.reload) ?? 0,
+    recoil: asNumber(record.recoil) ?? 0,
+  };
 }
 
 /** 一覧インデックスに載せる狩猟笛の旋律 1 件。 */

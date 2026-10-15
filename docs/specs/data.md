@@ -40,23 +40,24 @@ MHRS Database が配信するデータ（`public/data/`）の仕様をまとめ�
 ```
 
 - `datasets[].id` は拡張子なしの出力 id、`file` は実ファイルパス、`bytes`/`rawBytes` は gzip 後／前のバイト数、`keys` は配列なら要素数・オブジェクトならキー数。
-- **武器 1 件ごとの詳細（`weapons/<type>/<id>`）とモンスター 1 体ごとの詳細（`monsters/<id>`）は `listed: false` として manifest に含めない**（多数のファイルになるため）。存在は各 `index` の `id` から辿れる。
+- **武器 1 件ごとの詳細（`weapons/<type>/<id>`）・モンスター 1 体ごとの詳細（`monsters/<id>`）・アイテム 1 件ごとの詳細（`items/<id>`）は `listed: false` として manifest に含めない**（多数のファイルになるため）。存在は各 `index` の `id` から辿れる。
 
 ## 4. データセット一覧
 
 `scripts/etl/datasets/index.ts` に登録されたカテゴリのみ出力される（未登録のトップレベルキーは破棄）。
 
-| データセット | ファイル               | 内容                             |
-| ------------ | ---------------------- | -------------------------------- |
-| weapons      | `weapons/**`           | 武器（§5）                       |
-| armor_skills | `armor_skills.json.gz` | 防具・スキル・装飾品・百竜スキル |
-| items        | `items.json.gz`        | アイテム・素材・調合・虫         |
-| monsters     | `monsters/**`          | モンスター（§6）                 |
-| quests       | `quests.json.gz`       | クエスト・報酬・供給             |
+| データセット         | ファイル                       | 内容                               |
+| -------------------- | ------------------------------ | ---------------------------------- |
+| weapons              | `weapons/**`                   | 武器（§5）                         |
+| armor_skills         | `armor_skills.json.gz`         | 防具・スキル・装飾品・百竜スキル   |
+| hyakuryu_skill_names | `hyakuryu_skill_names.json.gz` | 百竜スキル id → 日本語名（§5.4.5） |
+| items                | `items/**`                     | アイテム・素材・調合（§7）         |
+| monsters             | `monsters/**`                  | モンスター（§6）                   |
+| quests               | `quests.json.gz`               | クエスト・報酬・供給               |
 
-weapons / monsters 以外は **ゲーム内部テーブルをスリム化しただけ**の構造（トップレベルは元のキーをそのまま保持）。主なトップレベルキー:
+weapons / monsters / items 以外は **ゲーム内部テーブルをスリム化しただけ**の構造（トップレベルは元のキーをそのまま保持）。主なトップレベルキー:
 
-- items: `items`, `items_name_msg`, `items_explain_msg`, `items_name_msg_mr`, `items_explain_msg_mr`, `material_category_msg`, `item_pop_lot`, `item_shop`, `item_mix`, `item_pack`, `insect*` ほか
+- items: `items`（`items/row` として出力）, `items_name_msg`, `items_explain_msg`, `items_name_msg_mr`, `items_explain_msg_mr`, `material_category_msg`, `item_pop_lot`, `item_shop`, `item_mix`, `item_pack`, `insect*` ほか
 - monsters: `monsters`, `small_monsters`, `monster_names`, `monster_aliases`, `monster_explains`, `*_mr`, `monster_list`, `parts_type`, `species` ほか（§6 で一覧・詳細ファイルに再構成する）
 - quests: `normal_quest_data`, `normal_quest_data_mr`, `dl_quest_data*`, `difficulty_rate*`, `reward_id_lot_table*`, `arena_quest`, `progress` ほか
 - armor_skills: `armor`, `armor_series`, `armor_product`, `equip_skill`, `player_skill_*`, `hyakuryu_skill*`, `decorations*` ほか
@@ -111,19 +112,23 @@ public/data/weapons/
 
 `WeaponIndexItem[]`（`sort` 昇順＝派生ツリーの前順で整列済み）。
 
-| フィールド           | 型              | 説明                                             |
-| -------------------- | --------------- | ------------------------------------------------ |
-| `id`                 | number          | 武器 id                                          |
-| `name`               | string          | 武器名（日本語）                                 |
-| `rarity`             | number          | レア度（`rare_type`）                            |
-| `atk`                | number          | 攻撃力                                           |
-| `critical_rate`      | number          | 会心率（負値あり）                               |
-| `elements`           | WeaponElement[] | 属性（種類と威力）。無属性なら `[]`（§5.4.1）    |
-| `sharpness_val_list` | number[]        | 切れ味（§5.4.2）。弓・ガンナーは `[]`            |
-| `takumi_val_list`    | number[]        | 匠による切れ味上昇分（一覧では未使用）           |
-| `path`               | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置） |
-| `sort`               | string          | 派生ツリーの前順ソートキー（§5.7）               |
-| `melodies`           | WeaponMelody[]? | 旋律（狩猟笛のみ、§5.4.3）                       |
+| フィールド           | 型              | 説明                                                    |
+| -------------------- | --------------- | ------------------------------------------------------- |
+| `id`                 | number          | 武器 id                                                 |
+| `name`               | string          | 武器名（日本語）                                        |
+| `rarity`             | number          | レア度（`rare_type`）                                   |
+| `atk`                | number          | 攻撃力                                                  |
+| `critical_rate`      | number          | 会心率（負値あり）                                      |
+| `elements`           | WeaponElement[] | 属性（種類と威力）。無属性なら `[]`（§5.4.1）           |
+| `sharpness_val_list` | number[]        | 切れ味（§5.4.2）。弓・ガンナーは `[]`                   |
+| `takumi_val_list`    | number[]        | 匠による切れ味上昇分（一覧では未使用）                  |
+| `path`               | number[]        | 根 → 自身の weapon id 配列（派生ツリー上の位置）        |
+| `sort`               | string          | 派生ツリーの前順ソートキー（§5.7）                      |
+| `melodies`           | WeaponMelody[]? | 旋律（狩猟笛のみ、§5.4.3）                              |
+| `rapid_fire`         | string[]?       | 速射する弾（BulletType 名。ライトボウガンのみ、§5.4.4） |
+| `deviation`          | string \| null? | ブレ（ライトボウガンのみ、§5.4.4）                      |
+| `reload`             | number?         | リロード速度（ライトボウガンのみ、§5.4.4）              |
+| `recoil`             | number?         | 反動（ライトボウガンのみ、§5.4.4）                      |
 
 ```json
 {
@@ -203,6 +208,49 @@ interface WeaponMelody {
 - マスタに無い id は `#<id>` にフォールバックし、欠落を可視化する。
 - 武器種ごとの固有フィールドを index に追加する場合は、この節と同じ要領で
   「index に載せて一覧だけで完結させる」方針を取る。
+
+#### 5.4.4 ガンナー性能（ライトボウガンのみ）
+
+ライトボウガンのレコードは `base` 直下にガンナー固有フィールドを持つ。ETL は一覧の
+カラムで使う値だけを index に載せる（**他の武器種のレコードにはこれらのフィールドは存在しない**）。
+
+| フィールド   | 型             | 説明                                           |
+| ------------ | -------------- | ---------------------------------------------- |
+| `rapid_fire` | string[]       | 速射する弾（`BulletType` 名。速射なしは `[]`） |
+| `deviation`  | string \| null | ブレ（`Fluctuation`）。`null` はブレなし       |
+| `reload`     | number         | リロード速度（数値。大きいほど速い）           |
+| `recoil`     | number         | 反動（数値。大きいほど大きい）                 |
+
+```jsonc
+{
+  "id": 333,
+  "name": "冷たき月の狼弩改",
+  // ...
+  "rapid_fire": ["IceKantsu"],
+  "deviation": "RightLittle",
+  "reload": 3,
+  "recoil": 2,
+}
+```
+
+- `rapid_shot_list` / `fluctuation` / `reload` / `recoil` は `base` 直下にあり、
+  正規化（§5.6）で `"None"` は `null` になる。
+- `deviation` の表示名（`LeftLittle` → 左小 など）と `reload` / `recoil` の数値は
+  一覧・詳細でそのまま、または固定の対応表で表示する（フロント側の `shared/lib/weapons.ts`）。
+- 弾種の添字・名称は詳細の `bullet_equip_flag_list` 等と共通（§5.5.6）。
+
+#### 5.4.5 百竜スキル名（`hyakuryu_skill_names.json.gz`）
+
+武器詳細の百竜スキル（§5.5.7）は id で保持されるため、表示用に id → 日本語名の
+参照テーブルを別ファイルとして出力する（`armor_skills` カテゴリの副産物）。
+
+```jsonc
+{ "0": "攻撃力強化Ⅰ", "1": "攻撃力強化Ⅱ" /* ... */ }
+```
+
+- 元データは `hyakuryu_skill_name_msg` / `hyakuryu_skill_name_msg_mr` の
+  `HyakuryuSkill_<id>_Name`（`_MR` は MR 追加分）。
+- `armor_skills.json.gz`（約 3.6MB）を読み込まずに済むよう、名前だけを抜き出している。
 
 ### 5.5 detail スキーマ（`weapons/<type>/<id>.json.gz`）
 
@@ -332,6 +380,45 @@ interface WeaponMelody {
   },
 ]
 ```
+
+#### 5.5.6 ガンナー固有フィールド（弾）
+
+ライト・ヘビィボウガンは `base` に弾関連フィールドを持つ。値は `normalize`（§5.6）済み。
+
+- `bullet_equip_flag_list[52]` / `bullet_num_list[52]` / `bullet_type_list[52]`:
+  添字は `BulletType`（下表）。装填可否・装填数・射撃タイプ。
+- `fluctuation` / `reload` / `recoil`: ブレ（`Fluctuation`）・リロード速度・反動。共通（§5.4.4）。
+- ライトボウガンのみ: `rapid_shot_list`（速射する弾。`BulletType` 名の配列）、
+  `unique_bullet`（特殊弾 = `Setti` / 起爆竜弾）。
+- ヘビィボウガンのみ: `heavy_bowgun_unique_bullet_type`（`Snipe` / `Gatling`）。
+
+`bullet_type_list` の値は `ShootType`: `None` / `MovingShot` / `MovingShotReload` /
+`MovingShotSingleAuto` / `MovingReload` / `MovingReloadSingleAuto` / `SingleAuto` /
+`MovingShotReloadSingleAuto`。
+
+`BulletType`（添字 = 値。1〜41 と 43 が実在弾。出典: mhrice の `BulletType`）:
+
+| 値    | 名前          | 表示        | 値    | 名前       | 表示               |
+| ----- | ------------- | ----------- | ----- | ---------- | ------------------ |
+| 1-3   | `Normal1-3`   | 通常弾1-3   | 23-24 | `Sleep1-2` | 睡眠弾1-2          |
+| 4-6   | `Kantsu1-3`   | 貫通弾1-3   | 25-26 | `Genki1-2` | 減気弾1-2          |
+| 7-9   | `SanW1-3`     | 散弾1-3     | 27-28 | `Heal1-2`  | 回復弾1-2          |
+| 10-12 | `SanO1-3`     | 放散弾1-3   | 29    | `Kijin`    | 鬼人弾             |
+| 13-15 | `Tekko1-3`    | 徹甲榴弾1-3 | 30    | `Kouka`    | 硬化弾             |
+| 16-18 | `Kakusan1-3`  | 拡散弾1-3   | 31-40 | `Fire` 系  | 火炎弾・貫通属性弾 |
+| 19-20 | `Poison1-2`   | 毒弾1-2     | 41    | `Zanretsu` | 斬裂弾             |
+| 21-22 | `Paralyze1-2` | 麻痺弾1-2   | 43    | `Capture`  | 捕獲用麻酔弾       |
+
+- 弾の日本語名は items の名称マスタ（`I_<アイテム id>_Name`）と同じ表記。
+  フロントは `BulletType` → 表示名の固定表を持つ（`shared/lib/weapons.ts`）。
+- 44 以降（`Setti` / `Gatling` / `Snipe` 等）は特殊弾・内部値。
+
+#### 5.5.7 百竜スキル
+
+`base` の `hyakuryu_skill_id_list`（武器固有の百竜スキル。`null` は空き）と
+`hyakuryu_slot_num_list`（百竜スロットの段数）を保持する。名称は
+`hyakuryu_skill_names`（§5.4.5）で id → 日本語名に解決する。百竜強化の候補は
+`hyakuryu_buildup`（§5.5.3）に別途保持する。
 
 ### 5.6 正規化ルール
 
@@ -470,7 +557,47 @@ public/data/monsters/
 
 武器と同じく、キーが 1 つだけのタグ付き union を値へ開く（`{ Em: 1 }` → `1`、`{ Normal: 519 }` → `519`）。`"None"` → `null`。対象タグは `Em` / `Ems` / `Normal`。
 
-## 7. フロントエンド側
+## 7. アイテムデータ仕様
+
+### 7.1 ファイル構成
+
+```
+public/data/items/
+  row.json.gz              # 元の（ゲーム寄りの）構造。参考・再処理用
+  index.json.gz            # 一覧用の軽量インデックス（図鑑順）
+  <アイテム id>.json.gz    # アイテム 1 件ごとの詳細
+```
+
+- `row`: 名称を持たない内部行・「なし」を除去した元構造（§2 の前処理後）。武器のレシピ素材名の解決（§8 の `loadItemNames`）もこのファイルを読む。
+- `index`: 一覧ページが読む唯一のファイル（1,764 件）。`id` / `name` / `rare` / `type` / `pl_max_count` / `sell_price` / `buy_price` / `craftable`。
+- `<id>`: 詳細ページ用。名称・説明・素材カテゴリ・調合・購入条件を join 済み。
+
+### 7.2 分類（`type_`）
+
+`type_` は表示名へ解決する（未知の種別は生の値にフォールバック）。
+
+| `type_`           | 表示名 | 件数  |
+| ----------------- | ------ | ----- |
+| `Material`        | 素材   | 1,199 |
+| `OffcutsMaterial` | 端材   | 150   |
+| `Antique`         | 骨董品 | 142   |
+| `PayOff`          | 換金   | 108   |
+| `Consume`         | 消耗品 | 77    |
+| `Bullet`          | 弾     | 59    |
+| `CarryPayOff`     | 運搬   | 19    |
+| `Bottle`          | ビン   | 7     |
+| `Tool`            | 道具   | 3     |
+
+### 7.3 詳細ファイルの項目
+
+- 基本: `id` / `name` / `rare` / `type` / `pl_max_count` / `sell_price` / `buy_price`。
+- `material_categories`: 素材カテゴリ名（例: "鉱石素材"・"鎌鼬竜素材"）。`items.param` の `material_category` はタグ付き union で、`{ LrHr: v }` → `material_category_msg` の `ICT_Name_<v + 1>`、`{ Mr: v }` → `material_category_msg_mr` の `ICT_Name_<v + 200>` に対応する。
+- `description`: 説明文（リッチテキストタグ除去済み）。無い場合は `null`。
+- `mix_as_product`: このアイテムを作る調合レシピ（材料名・完成品の個数）。`item_mix` から解決。
+- `mix_as_ingredient`: このアイテムを材料に使う調合レシピ（相方の材料名・完成品名・個数）。
+- `shop`: 雑貨屋の購入条件（`village` / `hall` / `mr` の★進度）。`item_shop` に無い場合は `null`。
+
+## 8. フロントエンド側
 
 - **型・定数**: `src/shared/lib/weapons.ts`
   - `WeaponType` / `weaponTypes`（id・表示名・表示順）
@@ -479,10 +606,15 @@ public/data/monsters/
   - `WeaponElement` / `getWeaponElementLabel(type)`（§5.4.1 の属性表示。未知の属性種別は生の表記にフォールバック）
   - `WeaponDetail` / `WeaponRecipes` / `WeaponRecipe` / `WeaponTree`（§5.5 の detail 型）、
     `getWeaponDetailElements(detail)`（detail の主・サブ属性を一覧と同じ配列へまとめる）
+  - `getWeaponBulletLabel(type)` / `getWeaponFluctuationLabel(type)` / `getWeaponShotType(type)`
+    と `getWeaponBullets(detail)`（§5.5.6 の弾を一覧表示用にまとめる。ガンナー以外は空）
 - **レシピ素材の名称**: `src/shared/lib/items.ts` の `ItemNameTable` と `getItemName` /
   `getMaterialCategoryName`。`src/pages/weapons/api/load-item-names.ts` の
-  `loadItemNames()` が `items` データからアイテム名・素材カテゴリ名の参照テーブルを構築する
+  `loadItemNames()` が `items/row` データからアイテム名・素材カテゴリ名の参照テーブルを構築する
   （レシピの素材はアイテム id で保持されるため、表示時にここで名称へ解決する）。
+- **百竜スキル名**: `src/shared/lib/hyakuryu.ts` の `HyakuryuSkillNameTable` と
+  `getHyakuryuSkillName`。`src/pages/weapons/api/load-hyakuryu-skill-names.ts` の
+  `loadHyakuryuSkillNames()` が `hyakuryu_skill_names`（§5.4.5）を読む。
 - **読み込み**: `src/shared/api/client.ts` の `loadDataset(id)`
   - `id` は `public/data/` 配下の拡張子なしパス（例: `weapons/great_sword/index`）。
   - 同一 URL はメモリキャッシュ。gzip はマジックバイトで二重展開を防止。
@@ -490,17 +622,20 @@ public/data/monsters/
   既存の shadcn `Table` を描画する。武器種ごとのカラムは `src/pages/weapons/ui/` に置く。
   - `weapon-columns.tsx`: 全武器種共通のカラム（ID / 名前 / レア度 / 攻撃力 / 会心率 / 属性 / 切れ味）。
   - `horn-columns.tsx`: 共通カラム + 狩猟笛の旋律カラム（§5.4.3）。
+  - `light-bowgun-columns.tsx`: 共通カラム + 速射 / ブレ / リロード / 反動（§5.4.4）。
   - 切れ味バーは `src/pages/weapons/ui/SharpnessBar.tsx` が描画する（§5.4.2）。
 - **読み込み（武器種ごと）**: `src/pages/weapons/api/load-weapon-list.ts` の
   `loadWeaponList(weaponType)` が index を読み、武器種固有フィールドを型付けした
   判別可能な union（`WeaponListData`）を返す。狩猟笛は `melodies` を join 済みの
-  `HornIndexItem` として返す。
+  `HornIndexItem`、ライトボウガンは速射等を載せた `LightBowgunIndexItem` として返す
+  （`src/pages/weapons/model/`）。
 - **読み込み（武器 1 件）**: `src/pages/weapons/api/load-weapon-detail.ts` の
   `loadWeaponDetail(weaponType, id)` が `weapons/<武器種>/<id>` を読む。
 - **詳細ドロワー**: `src/pages/weapons/ui/WeaponDetailDrawer.tsx` が shadcn `Sheet` で
-  基本情報（レア度 / 攻撃力 / 会心率 / 防御力 / 属性 / スロット / 切れ味）・説明・
-  生産/強化/加工レシピ・派生ツリー（`prev` / `next` を一覧の名称でリンク）を表示する。
-  モバイルは全幅（`data-[side=right]:w-full`）で表示する。
+  基本情報（レア度 / 攻撃力 / 会心率 / 防御力 / 属性 / スロット / 切れ味、ガンナーは
+  ブレ / リロード / 反動 / 特殊弾）・説明・使用可能な弾（ガンナー。§5.5.6）・
+  百竜スキル（§5.5.7）・生産/強化/加工レシピ・派生ツリー（`prev` / `next` を一覧の名称で
+  リンク）を表示する。モバイルは全幅（`data-[side=right]:w-full`）で表示する。
   - 一覧を眺めながら詳細を開けるよう、非モーダル（`modal={false}`）かつ
     オーバーレイなし（`showOverlay={false}`）で描画し、背面の一覧を操作できる。
   - ドロワーを開く / ツリー遷移 / 閉じるナビゲーションは `resetScroll: false` を指定し、
@@ -509,7 +644,8 @@ public/data/monsters/
   - `src/app/routes/weapons.$weaponType.tsx` → `/weapons/$weaponType`（一覧）。
     `loadWeaponList` を呼び `WeaponTypePage` に渡しつつ、`<Outlet />` で子ルートを重ねる。
   - `src/app/routes/weapons.$weaponType.$weaponId.tsx` → `/weapons/$weaponType/$weaponId`（詳細）。
-    `loadWeaponDetail` / `loadWeaponList`（キャッシュで即時）/ `loadItemNames` を読み、
+    `loadWeaponDetail` / `loadWeaponList`（キャッシュで即時）/ `loadItemNames` /
+    `loadHyakuryuSkillNames` を読み、
     `WeaponDetailDrawer` を右側ドロワーとして描画する。開閉はルートで表現し、閉じると
     一覧ルートへ戻る。一覧は親ルートが保持したまま子だけが入れ替わるため、開閉でソート
     状態が失われない。
@@ -525,12 +661,25 @@ public/data/monsters/
   - **ルーティング**: `src/app/routes/monsters.index.tsx` → `/monsters`（一覧）、
     `src/app/routes/monsters.$monsterId.tsx` → `/monsters/$monsterId`（詳細）。
     サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。
+- **アイテム**
+  - **型**: `src/pages/items/model/items.ts`（`ItemIndexItem` / `ItemDetail`、
+    `ItemMixRecipe` / `ItemMixUsage` / `ItemShopEntry`）。
+  - **読み込み**: `src/pages/items/api/load-item-list.ts` / `load-item-detail.ts`
+    が `items/index` と `items/<id>` を読む。
+  - **一覧**: `src/pages/items/ui/ItemsPage.tsx` が名前の部分一致検索・分類フィルタ付きの
+    `DataTable` を表示する。カラムは `item-columns.tsx`（名前 / レア度 / 分類 / 所持上限 /
+    売値 / 調合）。行クリックで詳細へ遷移する。
+  - **詳細**: `src/pages/items/ui/ItemDetailPage.tsx` が基本情報・素材カテゴリ・説明・
+    調合（このアイテムを作る／使う）・雑貨屋の購入条件を表示する。
+  - **ルーティング**: `src/app/routes/items.index.tsx` → `/items`（一覧）、
+    `src/app/routes/items.$itemId.tsx` → `/items/$itemId`（詳細）。
 
-## 8. 変更・再生成の手順
+## 9. 変更・再生成の手順
 
 1. `scripts/etl/datasets/*.ts` を編集。
 2. `vp run etl` で `public/data/` を再生成。
 3. `vp check` / `vp run fsd` / `vp run knip` / `vp build` を実行。
 
-> 注: `public/data/` は Git 管理下。武器 1 件ごとの詳細（約 3,900 ファイル）と
-> モンスター 1 体ごとの詳細（約 80 ファイル）を含む点に留意する。
+> 注: `public/data/` は Git 管理下。武器 1 件ごとの詳細（約 3,900 ファイル）・
+> モンスター 1 体ごとの詳細（約 80 ファイル）・アイテム 1 件ごとの詳細（約 1,760 ファイル）
+> を含む点に留意する。

@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  getHyakuryuSkillName,
   getItemName,
   getMaterialCategoryName,
+  getWeaponBulletLabel,
+  getWeaponBullets,
   getWeaponDetailElements,
   getWeaponElementLabel,
+  getWeaponFluctuationLabel,
+  type HyakuryuSkillNameTable,
   type ItemNameTable,
+  type WeaponBullet,
   type WeaponDetail,
   type WeaponIndexItem,
   type WeaponRecipe,
@@ -13,7 +19,20 @@ import {
   type WeaponTree,
   type WeaponType,
 } from "@/shared/lib";
-import { Badge, Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/shared/ui";
+import {
+  Badge,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui";
 import { SharpnessBar } from "./SharpnessBar";
 
 interface WeaponDetailDrawerProps {
@@ -22,6 +41,8 @@ interface WeaponDetailDrawerProps {
   /** 派生ツリーの名称解決に使う、同じ武器種の一覧。 */
   list: readonly WeaponIndexItem[];
   itemNames: ItemNameTable;
+  /** 百竜スキル名の解決に使う参照テーブル。 */
+  hyakuryuSkillNames: HyakuryuSkillNameTable;
 }
 
 /**
@@ -33,6 +54,7 @@ export function WeaponDetailDrawer({
   detail,
   list,
   itemNames,
+  hyakuryuSkillNames,
 }: WeaponDetailDrawerProps) {
   const navigate = useNavigate();
   const indexById = new Map(list.map((weapon) => [weapon.id, weapon]));
@@ -75,6 +97,8 @@ export function WeaponDetailDrawer({
               <p className="text-sm leading-relaxed whitespace-pre-line">{detail.description}</p>
             </Section>
           ) : null}
+          <AmmoSection detail={detail} />
+          <HyakuryuSection detail={detail} hyakuryuSkillNames={hyakuryuSkillNames} />
           <RecipesSection recipes={detail.recipes} itemNames={itemNames} />
           <DerivationSection tree={detail.tree} indexById={indexById} weaponType={weaponType} />
         </div>
@@ -136,11 +160,106 @@ function BasicInfoSection({
           label="スロット"
           value={slots.length > 0 ? slots.map((level) => `Lv${level}`).join(" / ") : "—"}
         />
+        {isGunner(detail) ? (
+          <>
+            <Stat label="ブレ" value={getWeaponFluctuationLabel(detail.fluctuation)} />
+            <Stat label="リロード" value={detail.reload ?? "—"} />
+            <Stat label="反動" value={detail.recoil ?? "—"} />
+            {detail.unique_bullet ? (
+              <Stat label="特殊弾" value={getWeaponBulletLabel(detail.unique_bullet)} />
+            ) : null}
+          </>
+        ) : null}
       </dl>
       {sharpness.length > 0 ? (
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">切れ味</span>
           <SharpnessBar values={sharpness} />
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+/** ガンナー（ボウガン）の詳細か。弾の装填可否リストの有無で判定する。 */
+function isGunner(detail: WeaponDetail): boolean {
+  return detail.bullet_equip_flag_list !== undefined;
+}
+
+/** 射撃タイプのフラグを表示用の文字列へまとめる。 */
+function shotTypeLabel(bullet: WeaponBullet): string {
+  const labels: string[] = [];
+  if (bullet.shotType.movingShot) labels.push("移動射撃");
+  if (bullet.shotType.movingReload) labels.push("移動装填");
+  if (bullet.shotType.singleAuto) labels.push("自動装填");
+  return labels.length > 0 ? labels.join("・") : "—";
+}
+
+/** 使用可能な弾（弾種・装填数・射撃タイプ・速射）のテーブル。 */
+function AmmoSection({ detail }: { detail: WeaponDetail }) {
+  const bullets = getWeaponBullets(detail);
+  if (bullets.length === 0) return null;
+
+  return (
+    <Section title="使用可能な弾">
+      <div className="overflow-hidden rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>弾種</TableHead>
+              <TableHead className="text-right">装填数</TableHead>
+              <TableHead>射撃タイプ</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {bullets.map((bullet) => (
+              <TableRow key={bullet.type}>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span>{bullet.name}</span>
+                    {bullet.rapid ? <Badge variant="secondary">速射</Badge> : null}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{bullet.capacity}</TableCell>
+                <TableCell className="text-muted-foreground">{shotTypeLabel(bullet)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </Section>
+  );
+}
+
+/** 百竜スキルと百竜スロット。武器共通のデータで、該当がなければ表示しない。 */
+function HyakuryuSection({
+  detail,
+  hyakuryuSkillNames,
+}: {
+  detail: WeaponDetail;
+  hyakuryuSkillNames: HyakuryuSkillNameTable;
+}) {
+  const skillIds = (detail.hyakuryu_skill_id_list ?? []).filter((id): id is number => id !== null);
+  const slots = (detail.hyakuryu_slot_num_list ?? []).filter((level) => level > 0);
+  if (skillIds.length === 0 && slots.length === 0) return null;
+
+  return (
+    <Section title="百竜スキル">
+      {skillIds.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1">
+          {skillIds.map((id) => (
+            <Badge key={id} variant="secondary">
+              {getHyakuryuSkillName(hyakuryuSkillNames, id)}
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">なし</p>
+      )}
+      {slots.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">百竜スロット</span>
+          <span className="text-sm">{slots.map((level) => `Lv${level}`).join(" / ")}</span>
         </div>
       ) : null}
     </Section>
@@ -156,6 +275,8 @@ const RECIPE_KINDS = [
 
 interface Material {
   readonly key: string;
+  /** アイテム詳細へリンクする id。素材カテゴリなど詳細ページが無い場合は `null`。 */
+  readonly itemId: number | null;
   readonly label: string;
   readonly num: number;
 }
@@ -167,11 +288,19 @@ function recipeMaterials(recipe: WeaponRecipe, itemNames: ItemNameTable): Materi
     if (itemId === null) return;
     const num = recipe.item_num[index] ?? 0;
     if (num <= 0) return;
-    materials.push({ key: `item-${itemId}`, label: getItemName(itemNames, itemId), num });
+    // 名称が引けない（＝アイテム詳細が存在しない）id はリンクしない。
+    const linkable = itemNames.items[itemId] !== undefined;
+    materials.push({
+      key: `item-${itemId}`,
+      itemId: linkable ? itemId : null,
+      label: getItemName(itemNames, itemId),
+      num,
+    });
   });
   if (recipe.material_category !== null && recipe.material_category_num > 0) {
     materials.push({
       key: `category-${recipe.material_category}`,
+      itemId: null,
       label: getMaterialCategoryName(itemNames, recipe.material_category),
       num: recipe.material_category_num,
     });
@@ -188,7 +317,17 @@ function RecipeList({ recipe, itemNames }: { recipe: WeaponRecipe; itemNames: It
     <ul className="flex flex-col gap-0.5">
       {materials.map((material) => (
         <li key={material.key} className="flex items-baseline justify-between gap-2 text-sm">
-          <span>{material.label}</span>
+          {material.itemId !== null ? (
+            <Link
+              to="/items/$itemId"
+              params={{ itemId: String(material.itemId) }}
+              className="text-primary hover:underline"
+            >
+              {material.label}
+            </Link>
+          ) : (
+            <span>{material.label}</span>
+          )}
           <span className="text-muted-foreground tabular-nums">×{material.num}</span>
         </li>
       ))}
