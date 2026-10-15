@@ -1,8 +1,9 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { navigation } from "@/app/config/navigation";
-import { siteTitle } from "@/app/config/site";
+import { siteRepoUrl, siteTitle } from "@/app/config/site";
 import {
   AppSidebar,
+  GitHubLink,
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -16,7 +17,16 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <SidebarProvider>
-      <AppSidebar title={siteTitle} items={navigation} footer={<ThemeToggle />} />
+      <AppSidebar
+        title={siteTitle}
+        items={navigation}
+        footer={
+          <div className="flex items-center gap-1">
+            <ThemeToggle className="flex-1" />
+            <GitHubLink href={siteRepoUrl} />
+          </div>
+        }
+      />
       <SidebarInset>
         <div className="flex p-2">
           <SidebarTrigger />
