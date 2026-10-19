@@ -32,7 +32,7 @@ export function MonsterStatusTable({ detail }: { detail: MonsterDetail }) {
   if (rows.length === 0) return null;
 
   return (
-    <Table>
+    <Table className="w-auto">
       <TableHeader>
         <TableRow>
           <TableHead>状態異常</TableHead>

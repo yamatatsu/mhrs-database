@@ -11,5 +11,6 @@ export const navigation: readonly SidebarEntry[] = [
     })),
   },
   { label: "モンスター", to: "/monsters" },
+  { label: "状態異常耐性", to: "/resistances" },
   { label: "アイテム", to: "/items" },
 ];

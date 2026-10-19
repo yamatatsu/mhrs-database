@@ -23,7 +23,7 @@ export function MonsterHitzoneTable({ detail }: { detail: MonsterDetail }) {
           区切りで表示します（左から相の順）。
         </p>
       ) : null}
-      <Table>
+      <Table className="w-auto">
         <TableHeader>
           <TableRow>
             <TableHead>部位</TableHead>

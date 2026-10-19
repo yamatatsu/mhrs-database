@@ -69,6 +69,30 @@ export interface MonsterCondition {
   readonly active_time: number;
 }
 
+/** 状態異常耐性一覧（`monsters/resistances.json.gz`）の 1 件。 */
+export interface MonsterResistanceItem {
+  /** モンスター id（内部一意 id）。 */
+  readonly id: number;
+  /** モンスター名（日本語）。 */
+  readonly name: string;
+  /** 状態異常キー → 耐性値。プリセット解決済み（§6.6）。 */
+  readonly conditions: Readonly<Record<string, MonsterResistanceValue | undefined>>;
+}
+
+/** 状態異常 1 種の耐性値（プリセット解決済み）。 */
+export interface MonsterResistanceValue {
+  /** 初期耐性値。 */
+  readonly initial: number;
+  /** 耐性値の上昇量。 */
+  readonly add: number;
+  /** 最大耐性値。 */
+  readonly max: number;
+  /** 効果時間（秒）。0 は効果時間なし。 */
+  readonly active_time: number;
+  /** プリセット表の範囲外（モンスター固有値）かどうか。 */
+  readonly unique: boolean;
+}
+
 /** 部位と肉質グループの対応（`collider_mapping`）。 */
 export interface MonsterColliderMapping {
   /** 肉質インデックス → 部位名（例: `"0": ["A：頭部", ...]`）。 */
@@ -126,6 +150,19 @@ export const monsterStatusTypes = [
   { key: "blast_data", label: "爆破" },
   { key: "flash_data", label: "閃光" },
   { key: "marionette_data", label: "乗り" },
+] as const;
+
+/**
+ * 状態異常耐性一覧（`monsters/resistances`）で扱う状態異常。
+ * 耐性値（初期 / 上昇 / 最大）でパターン化できるものだけを載せる（閃光・乗りは除外）。
+ */
+export const monsterResistanceTypes = [
+  { key: "paralyze_data", label: "麻痺" },
+  { key: "sleep_data", label: "睡眠" },
+  { key: "stun_data", label: "気絶" },
+  { key: "stamina_data", label: "スタミナ" },
+  { key: "poison_data", label: "毒" },
+  { key: "blast_data", label: "爆破" },
 ] as const;
 
 /**

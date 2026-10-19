@@ -481,9 +481,10 @@ const depth = item.path.length - 1;
 
 ```
 public/data/monsters/
-  row.json.gz        # 元の（ゲーム寄りの）構造。参考・再処理用
-  index.json.gz      # 一覧用の軽量インデックス
-  <id>.json.gz       # モンスター 1 体ごとの詳細（id = Em 値）
+  row.json.gz          # 元の（ゲーム寄りの）構造。参考・再処理用
+  index.json.gz        # 一覧用の軽量インデックス
+  resistances.json.gz  # 状態異常耐性の一覧（§6.2.1）
+  <id>.json.gz         # モンスター 1 体ごとの詳細（id = Em 値）
 ```
 
 - `id` は `monsters[].em_type.Em`（内部一意 id）。ゲーム内の `monsters[].id`（モンスター種）と枝番 `sub_id` は詳細に `species_id` / `sub_id` として保持する。
@@ -503,6 +504,41 @@ public/data/monsters/
 | `rank`       | number \| null | 危険度（`enemy_rank`、1〜10）                      |
 | `base_size`  | number \| null | サイズの基準値（`size_list`）                      |
 | `enemy_type` | number         | 図鑑の並びインデックス（`EnemyIndex<n>` の n）     |
+
+### 6.2.1 状態異常耐性一覧（`monsters/resistances.json.gz`）
+
+`MonsterResistanceItem[]`。状態異常耐性を状態異常ごとに横断して見るための一覧で、
+値は共有プリセットで解決済み（§6.6）。モンスター詳細ページの「状態異常耐性」表と
+同じ値になる。
+
+| フィールド   | 型     | 説明                          |
+| ------------ | ------ | ----------------------------- |
+| `id`         | number | モンスター id（Em 値）        |
+| `name`       | string | モンスター名（日本語）        |
+| `conditions` | object | 状態異常キー → 耐性値（下表） |
+
+`conditions` のキーは `paralyze_data` / `sleep_data` / `stun_data` / `stamina_data` /
+`poison_data` / `blast_data`（閃光・乗りは耐性値でパターン化できないため含めない）。
+
+| フィールド    | 型      | 説明                                                     |
+| ------------- | ------- | -------------------------------------------------------- |
+| `initial`     | number  | 初期耐性値（`default_stock.default_limit`）              |
+| `add`         | number  | 耐性値の上昇量（`default_stock.add_limit`）              |
+| `max`         | number  | 最大耐性値（`default_stock.max_limit`）                  |
+| `active_time` | number  | 効果時間（秒）。0 は効果時間なし                         |
+| `unique`      | boolean | プリセット表の範囲外（モンスター固有値）かどうか（§6.6） |
+
+```jsonc
+{
+  "id": 1,
+  "name": "リオレイア",
+  "conditions": {
+    "paralyze_data": { "initial": 180, "add": 130, "max": 570, "active_time": 10, "unique": false },
+    "stun_data": { "initial": 110, "add": 120, "max": 630, "active_time": 10, "unique": true },
+    // ...
+  },
+}
+```
 
 ### 6.3 detail スキーマ（`monsters/<id>.json.gz`）
 
@@ -530,7 +566,7 @@ public/data/monsters/
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `data_base` / `data_tune` | 基礎・調整値（体力 `base_hp_vital` / `master_hp_vital`、部位体力、重さ等）                                        |
 | `meat_data`               | 肉質。`meat_container[i].meat_group_info[j]` が部位 i・状態 j の弱点値（§6.3.1）                                  |
-| `condition_damage_data`   | 状態異常耐性（`*_data.default_stock` に初期耐性・上昇・最大、`active_time` に効果時間）                           |
+| `condition_damage_data`   | 状態異常耐性（`*_data.default_stock` に初期耐性・上昇・最大、`active_time` に効果時間。プリセット解決済み＝§6.6） |
 | `collider_mapping`        | `meat_map`（肉質インデックス → 部位名）/ `part_map`                                                               |
 | その他                    | `anger_data` / `stamina_data` / `parts_break_data` / `drop_item` / `parts_break_reward` / `ecological` などを保持 |
 
@@ -556,6 +592,23 @@ public/data/monsters/
 ### 6.5 正規化ルール
 
 武器と同じく、キーが 1 つだけのタグ付き union を値へ開く（`{ Em: 1 }` → `1`、`{ Normal: 519 }` → `519`）。`"None"` → `null`。対象タグは `Em` / `Ems` / `Normal`。
+
+### 6.6 状態異常耐性のプリセット解決
+
+状態異常耐性は、モンスター自身が持つ `condition_damage_data` だけでなく、共有プリセット表 `condition_preset`（`paralyze_data` / `sleep_data` / `stun_data` / `stamina_data` / `poison_data` / `blast_data` / `flash_data` / `fire_data` / `water_data` / `ice_data` / `thunder_data` / 罠系など）でも定義される。各 `*_data` の `preset_type` がプリセット表のインデックスになっている。
+
+- **`preset_type` がプリセット表の範囲内なら、そのプリセット値で上書きする。** モンスター自身の `default_stock` / `active_time` 等は使われない（ゲーム側も既定でプリセットを優先する。出典: mhrice の `ConditionDamage::or_preset`）。
+- **`preset_type` が範囲外（固有値）のときだけ、モンスター自身の値を使う。** 主に一部のヌシ・傀異克服・古龍など。
+- したがって detail の `condition_damage_data` は解決後の値になる。上書き前の生の値は `monsters/row` に残る。
+- `marionette_data`（乗り）にはプリセット表が無いため、常にモンスター自身の値を使う。
+
+例（アオアシラ）:
+
+| 状態異常 | 生の値（`monsters/row`） | 解決後（detail・表示値） |
+| -------- | ------------------------ | ------------------------ |
+| 毒       | 180/130/570              | 100/90/370               |
+| 麻痺     | 180/130/570              | 130/75/430               |
+| 爆破     | 180/130/570              | 70/30/670                |
 
 ## 7. アイテムデータ仕様
 
@@ -627,14 +680,25 @@ public/data/monsters/
   - **読み込み**: `src/pages/monsters/api/load-monster-list.ts` / `load-monster-detail.ts`
     が `monsters/index` と `monsters/<id>` を読む。
   - **一覧**: `src/pages/monsters/ui/MonstersPage.tsx` が詳細ページへのリンクを並べる。
-  - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・図鑑説明・
-    肉質（`MonsterHitzoneTable`）・状態異常耐性（`MonsterStatusTable`）を表示する。
+  - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・肉質
+    （`MonsterHitzoneTable`）・状態異常耐性（`MonsterStatusTable`）・図鑑説明の順に表示する。
   - **肉質の表示**: `src/pages/monsters/model/hitzone.ts` の `buildMonsterHitzoneRows` が
     部位（`meat_map`）ごとに相（`meat_group_info`）を畳む。全相で同値なら単一値、
     1 つでも異なれば相の順に `/` 区切り（`formatMonsterHitzoneValue`）で表示する。
   - **ルーティング**: `src/app/routes/monsters.index.tsx` → `/monsters`（一覧）、
     `src/app/routes/monsters.$monsterId.tsx` → `/monsters/$monsterId`（詳細）。
     サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。
+- **状態異常耐性**
+  - **型・定数**: `src/shared/lib/monsters.ts`（`MonsterResistanceItem` /
+    `MonsterResistanceValue`、`monsterResistanceTypes`）。
+  - **読み込み**: `src/pages/resistances/api/load-resistances.ts` が
+    `monsters/resistances`（§6.2.1）を読む。
+  - **集計**: `src/pages/resistances/model/resistances.ts` の `buildResistanceGroups` が
+    同じ耐性値（初期 / 上昇 / 最大）のモンスターをまとめる。並びは初期耐性の昇順。
+  - **表示**: `src/pages/resistances/ui/ResistancesPage.tsx` が状態異常ごとに表を並べる。
+    モンスター名は詳細ページへのリンク。
+  - **ルーティング**: `src/app/routes/resistances.tsx` → `/resistances`。
+    サイドバーは「状態異常耐性」1 項目（`src/app/config/navigation.ts`）。
 - **アイテム**
   - **型**: `src/pages/items/model/items.ts`（`ItemIndexItem` / `ItemDetail`、
     `ItemMixRecipe` / `ItemMixUsage` / `ItemShopEntry` / `ItemMonsterReward` /

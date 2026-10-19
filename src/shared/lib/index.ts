@@ -8,7 +8,10 @@ export {
   type MonsterDetail,
   type MonsterIndexItem,
   type MonsterMeatGroup,
+  type MonsterResistanceItem,
+  type MonsterResistanceValue,
   monsterHitzoneColumns,
+  monsterResistanceTypes,
   monsterStatusTypes,
   type MonsterSize,
 } from "./monsters";

@@ -7,7 +7,7 @@ interface MonsterDetailPageProps {
   detail: MonsterDetail;
 }
 
-/** モンスター詳細ページ。基本情報・図鑑説明・肉質・状態異常耐性を表示する。 */
+/** モンスター詳細ページ。基本情報・肉質・状態異常耐性・図鑑説明を表示する。 */
 export function MonsterDetailPage({ detail }: MonsterDetailPageProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -27,6 +27,14 @@ export function MonsterDetailPage({ detail }: MonsterDetailPageProps) {
         <BasicInfo detail={detail} />
       </Section>
 
+      <Section title="肉質">
+        <MonsterHitzoneTable detail={detail} />
+      </Section>
+
+      <Section title="状態異常耐性">
+        <MonsterStatusTable detail={detail} />
+      </Section>
+
       {detail.description.length > 0 ? (
         <Section title="図鑑説明">
           <div className="flex flex-col gap-3">
@@ -38,14 +46,6 @@ export function MonsterDetailPage({ detail }: MonsterDetailPageProps) {
           </div>
         </Section>
       ) : null}
-
-      <Section title="肉質">
-        <MonsterHitzoneTable detail={detail} />
-      </Section>
-
-      <Section title="状態異常耐性">
-        <MonsterStatusTable detail={detail} />
-      </Section>
     </div>
   );
 }

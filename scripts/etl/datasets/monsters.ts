@@ -46,10 +46,24 @@ const FAMILY_LABELS: Record<string, string> = {
 };
 
 /**
+ * 状態異常耐性一覧（`monsters/resistances`）に載せる状態異常のキー。
+ * 値は共有プリセット表（`condition_preset`）で解決済み（§6.6）。
+ */
+const RESISTANCE_KEYS = [
+  "paralyze_data",
+  "sleep_data",
+  "stun_data",
+  "stamina_data",
+  "poison_data",
+  "blast_data",
+] as const;
+
+/**
  * モンスターカテゴリは武器と同じく、一覧用の軽量インデックスと
  * モンスター 1 体ごとの詳細ファイルを出力する。
  * - `monsters/row`: 元の（ゲーム寄りの）構造。参考・再処理用。
  * - `monsters/index`: 一覧用の軽量インデックス（名前・異名・種族・危険度・サイズ）。
+ * - `monsters/resistances`: 状態異常耐性の一覧（状態異常ごとの初期耐性・上昇・最大）。
  * - `monsters/<em>`: モンスター 1 体ごとの詳細（正規化した生データ + 名称・図鑑説明・種族・危険度・サイズを join）。
  */
 export const monsters: Dataset = {
@@ -62,6 +76,7 @@ function buildFiles(group: Record<string, unknown>): DatasetFile[] {
   return [
     { id: "monsters/row", data: group },
     { id: "monsters/index", data: buildIndex(group) },
+    { id: "monsters/resistances", data: buildResistances(group) },
     ...buildDetails(group),
   ];
 }
@@ -109,6 +124,7 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
   const ranks = rankByEm(data);
   const sizes = sizeByEm(data);
   const lists = listByEm(data);
+  const presets = data.condition_preset;
 
   return monsterRecords(data).flatMap((record) => {
     const em = emOf(record);
@@ -121,6 +137,8 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
     const { id: speciesId, em_type: _em, ...rest } = normalized;
     const detail = {
       ...rest,
+      // 状態異常耐性は共有プリセット表で上書きする（§6.6）。
+      condition_damage_data: resolveConditionPresets(rest.condition_damage_data, presets),
       // `id` は一意なモンスター id（= Em 値）とし、ルーティングキーに使う。
       id: em,
       // ゲーム内のモンスター id（モンスター種）と枝番。亜種・希少種などは sub_id が異なる。
@@ -137,6 +155,73 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
 
     return [{ id: `monsters/${em}`, data: detail, listed: false }];
   });
+}
+
+/**
+ * 状態異常耐性の一覧を生成する（`monsters/resistances`）。
+ * 状態異常ごとに、プリセット解決後の初期耐性・上昇・最大・効果時間を載せる。
+ * `unique` はプリセット表の範囲外（モンスター固有値）かどうか。
+ */
+function buildResistances(data: Record<string, unknown>): unknown[] {
+  const names = entryNameMap(data, ["monster_names", "monster_names_mr"], NAME_RE);
+  const presets = data.condition_preset;
+
+  return monsterRecords(data).flatMap((record) => {
+    const em = emOf(record);
+    const enemyType = asNumber(record.enemy_type);
+    if (em === undefined || enemyType === undefined) return [];
+    const name = names.get(enemyType);
+    if (name === undefined) return [];
+
+    const conditionData = normalizeMonster(record).condition_damage_data;
+    if (!isObject(conditionData)) return [];
+
+    const conditions: Record<string, unknown> = {};
+    for (const key of RESISTANCE_KEYS) {
+      const { value, unique } = resolveCondition(key, conditionData[key], presets);
+      if (!isObject(value)) continue;
+      const stock = value.default_stock;
+      if (!isObject(stock)) continue;
+      conditions[key] = {
+        initial: asNumber(stock.default_limit) ?? 0,
+        add: asNumber(stock.add_limit) ?? 0,
+        max: asNumber(stock.max_limit) ?? 0,
+        active_time: asNumber(value.active_time) ?? 0,
+        unique,
+      };
+    }
+
+    return [{ id: em, name, conditions }];
+  });
+}
+
+/**
+ * 状態異常 1 種の耐性を解決する。
+ *
+ * ゲーム側は `preset_type` がプリセット表の範囲内ならそのプリセット値を使い、
+ * 範囲外（固有値）のときだけモンスター自身の値を使う（mhrice の
+ * `ConditionDamage::or_preset` と同じ）。元の値は `monsters/row` に残る。
+ * `unique` は範囲外＝モンスター固有値だったかどうか。
+ */
+function resolveCondition(
+  key: string,
+  condition: unknown,
+  presets: unknown,
+): { value: unknown; unique: boolean } {
+  const list = isObject(presets) ? presets[key] : undefined;
+  const index = isObject(condition) ? asNumber(condition.preset_type) : undefined;
+  const preset = Array.isArray(list) && index !== undefined ? list[index] : undefined;
+  return isObject(preset) ? { value: preset, unique: false } : { value: condition, unique: true };
+}
+
+/** `condition_damage_data` の各状態異常をプリセットで解決した新しいオブジェクトを返す。 */
+function resolveConditionPresets(conditionData: unknown, presets: unknown): unknown {
+  if (!isObject(conditionData)) return conditionData;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(conditionData)) {
+    out[key] = resolveCondition(key, value, presets).value;
+  }
+  return out;
 }
 
 /** `data.monsters` の各レコードを列挙する。 */

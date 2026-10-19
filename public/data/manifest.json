@@ -1,6 +1,6 @@
 {
   "source": "https://mhrise.mhrice.info/mhrice.json",
-  "generatedAt": "2026-10-15T23:03:23.654Z",
+  "generatedAt": "2026-10-18T00:29:25.103Z",
   "datasets": [
     {
       "id": "weapons/great_sword/row",
@@ -238,6 +238,13 @@
       "file": "monsters/index.json.gz",
       "bytes": 2527,
       "rawBytes": 11570,
+      "keys": 78
+    },
+    {
+      "id": "monsters/resistances",
+      "file": "monsters/resistances.json.gz",
+      "bytes": 1894,
+      "rawBytes": 42281,
       "keys": 78
     },
     {
