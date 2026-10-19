@@ -93,6 +93,16 @@ export interface MonsterResistanceValue {
   readonly unique: boolean;
 }
 
+/** 部位破壊の 1 部位。 */
+export interface MonsterPartBreak {
+  /** 部位名（例: `"頭部"` / `"尻尾"`）。 */
+  readonly part: string;
+  /** 部位破壊の段階（1 または 2）。切断のみの部位は `null`。 */
+  readonly level: number | null;
+  /** 切断できる部位かどうか。 */
+  readonly severable: boolean;
+}
+
 /** 部位と肉質グループの対応（`collider_mapping`）。 */
 export interface MonsterColliderMapping {
   /** 肉質インデックス → 部位名（例: `"0": ["A：頭部", ...]`）。 */
@@ -123,6 +133,8 @@ export interface MonsterDetail {
     readonly master_hp_vital: number;
   };
   readonly meat_data?: { readonly meat_container: readonly MonsterMeatContainer[] };
+  /** 部位破壊の一覧（`parts_break_reward` × `parts_type` を解決済み）。 */
+  readonly parts_break?: readonly MonsterPartBreak[];
   readonly collider_mapping?: MonsterColliderMapping;
   readonly condition_damage_data?: Readonly<Record<string, MonsterCondition | undefined>>;
 }

@@ -559,6 +559,7 @@ public/data/monsters/
 | `rank`        | number \| null | 危険度（`enemy_rank`）                                                                                  |
 | `size`        | object \| null | `size_list` の 1 件（`base_size` / `small_boarder` / `big_boarder` / `king_boarder` / `no_size_scale`） |
 | `list`        | object \| null | `monster_list` の 1 件（`family_type` / `habitat_area` / `part_table_data` ほか）                       |
+| `parts_break` | object[]       | 部位破壊の一覧（部位名・破壊段階・切断可否。§6.3.2）                                                    |
 
 **生データ（正規化のみ）**
 
@@ -575,6 +576,20 @@ public/data/monsters/
 - `meat_map` のキー（`"0"`〜）が `meat_container` のインデックスに対応し、値が部位名（例: `["A：頭部", "A：頭部_顎用（クグツ）"]`）。
 - `meat_container[i].meat_group_info[j]` が状態 j の肉質（`slash` / `strike` / `shell` / `fire` / `water` / `ice` / `elect` / `dragon` / `piyo`）。
 - 部位によっては状態を複数持つ（通常・怒り等）。`list.part_table_data` の `em_meat` / `em_meat_group_index` が図鑑の部位と対応する。
+
+#### 6.3.2 部位破壊（`parts_break`）
+
+`parts_break` は部位破壊の表示用に、次の 3 つを解決した配列。表示順は部位破壊報酬の定義順で、切断のみの尻尾は末尾に追加する。
+
+| フィールド  | 型             | 説明                                             |
+| ----------- | -------------- | ------------------------------------------------ |
+| `part`      | string         | 部位名（例: `"頭部"` / `"両角"` / `"尻尾"`）     |
+| `level`     | number \| null | 部位破壊の段階（1 / 2）。切断のみの部位は `null` |
+| `severable` | boolean        | 切断できる部位かどうか                           |
+
+- **部位名**: `parts_break_reward.enemy_parts_break_reward_infos[].broken_parts_type.RandomId` を `parts_type.params[].broken_parts_types.RandomId` で引き、`text_infos[]` のうち `enemy_type_list` に当該 `Em` を含むものの `text_for_monster_list` を `hunter_note_msg` / `hunter_note_msg_mr` の日本語名に解決する。同じ部位に複数候補がある場合は先頭を使う。
+- **段階**: `parts_break_condition_list[].parts_break_level` の最大値。同じ部位名が複数ある場合は最大段階にまとめる（例: ショウグンギザミのヤド）。
+- **切断**: `parts_break_data.parts_loss_group_data_list[].parts_group` を `collider_mapping.part_map` で引き、名前に「尾」を含むものを切断可能な尻尾とする。部位破壊報酬にも尻尾がある場合は同じ行にまとめ、`severable: true` にする。
 
 ### 6.4 種族（`family`）
 
@@ -680,8 +695,11 @@ public/data/monsters/
   - **読み込み**: `src/pages/monsters/api/load-monster-list.ts` / `load-monster-detail.ts`
     が `monsters/index` と `monsters/<id>` を読む。
   - **一覧**: `src/pages/monsters/ui/MonstersPage.tsx` が詳細ページへのリンクを並べる。
-  - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・肉質
-    （`MonsterHitzoneTable`）・状態異常耐性（`MonsterStatusTable`）・図鑑説明の順に表示する。
+  - **詳細**: `src/pages/monsters/ui/MonsterDetailPage.tsx` が基本情報・部位破壊
+    （`MonsterPartBreakTable`）・肉質（`MonsterHitzoneTable`）・状態異常耐性
+    （`MonsterStatusTable`）・図鑑説明の順に表示する。
+  - **部位破壊の表示**: `MonsterPartBreakTable` が `parts_break` を部位・破壊段階・切断可否の
+    表で表示する。破壊段階は `1段階` / `2段階`、切断のみの部位は `—` とする。
   - **肉質の表示**: `src/pages/monsters/model/hitzone.ts` の `buildMonsterHitzoneRows` が
     部位（`meat_map`）ごとに相（`meat_group_info`）を畳む。全相で同値なら単一値、
     1 つでも異なれば相の順に `/` 区切り（`formatMonsterHitzoneValue`）で表示する。

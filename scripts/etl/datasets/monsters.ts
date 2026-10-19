@@ -1,5 +1,5 @@
 import { cleanTags, getEntryJa } from "../filter.ts";
-import { asArray, asNumber, isObject } from "../json.ts";
+import { asArray, asNumber, asString, isObject } from "../json.ts";
 import { baseTransform } from "../slim.ts";
 import type { Dataset, DatasetFile } from "../types.ts";
 
@@ -69,15 +69,15 @@ const RESISTANCE_KEYS = [
 export const monsters: Dataset = {
   name: "monsters",
   match: (key) => MONSTER_PREFIXES.some((prefix) => key.startsWith(prefix)),
-  transform: (group) => buildFiles(baseTransform(group)),
+  transform: (group, raw) => buildFiles(baseTransform(group), raw),
 };
 
-function buildFiles(group: Record<string, unknown>): DatasetFile[] {
+function buildFiles(group: Record<string, unknown>, raw: Record<string, unknown>): DatasetFile[] {
   return [
     { id: "monsters/row", data: group },
     { id: "monsters/index", data: buildIndex(group) },
     { id: "monsters/resistances", data: buildResistances(group) },
-    ...buildDetails(group),
+    ...buildDetails(group, raw),
   ];
 }
 
@@ -116,7 +116,7 @@ function buildIndex(data: Record<string, unknown>): unknown[] {
 }
 
 /** モンスター 1 体ごとの詳細を生成する。 */
-function buildDetails(data: Record<string, unknown>): DatasetFile[] {
+function buildDetails(data: Record<string, unknown>, raw: Record<string, unknown>): DatasetFile[] {
   const names = entryNameMap(data, ["monster_names", "monster_names_mr"], NAME_RE);
   const aliases = entryNameMap(data, ["monster_aliases", "monster_aliases_mr"], ALIAS_RE);
   const explains = explainMap(data);
@@ -125,6 +125,8 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
   const sizes = sizeByEm(data);
   const lists = listByEm(data);
   const presets = data.condition_preset;
+  // 部位名は guid 付きの名称マスタを参照するため、スリム化前の生データを使う。
+  const partNames = partNameByEmAndRandomId(raw);
 
   return monsterRecords(data).flatMap((record) => {
     const em = emOf(record);
@@ -139,6 +141,8 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
       ...rest,
       // 状態異常耐性は共有プリセット表で上書きする（§6.6）。
       condition_damage_data: resolveConditionPresets(rest.condition_damage_data, presets),
+      // 部位破壊の表示名・段階・切断可否（§6.3.2）。
+      parts_break: buildPartsBreak(normalized, em, partNames),
       // `id` は一意なモンスター id（= Em 値）とし、ルーティングキーに使う。
       id: em,
       // ゲーム内のモンスター id（モンスター種）と枝番。亜種・希少種などは sub_id が異なる。
@@ -154,6 +158,137 @@ function buildDetails(data: Record<string, unknown>): DatasetFile[] {
     };
 
     return [{ id: `monsters/${em}`, data: detail, listed: false }];
+  });
+}
+
+/** 部位破壊の 1 行。 */
+interface PartBreakRow {
+  part: string;
+  /** 部位破壊の段階。切断のみの部位は `null`。 */
+  level: number | null;
+  /** 切断できるかどうか。 */
+  severable: boolean;
+}
+
+/**
+ * `parts_type` と名称マスタから「モンスター id + RandomId → 部位名」を索引化する。
+ *
+ * `parts_break_reward` の `broken_parts_type.RandomId` は、`parts_type.params` の
+ * 同じ RandomId を指す。各 param の `text_infos` はモンスター（`Em`）ごとの
+ * 表示名 guid を持つため、`hunter_note_msg` / `hunter_note_msg_mr` の日本語名に解決する。
+ * 同じモンスターに複数の候補がある場合は先頭（より具体的な名称）を採用する。
+ */
+function partNameByEmAndRandomId(data: Record<string, unknown>): Map<string, string> {
+  const guidNames = messageNameMap(data, ["hunter_note_msg", "hunter_note_msg_mr"]);
+  const map = new Map<string, string>();
+  const partsType = data.parts_type;
+  if (!isObject(partsType)) return map;
+
+  for (const param of asArray(partsType.params).filter(isObject)) {
+    const randomId = isObject(param.broken_parts_types)
+      ? asNumber(param.broken_parts_types.RandomId)
+      : undefined;
+    if (randomId === undefined) continue;
+
+    for (const info of asArray(param.text_infos).filter(isObject)) {
+      const guid = asString(info.text_for_monster_list);
+      const name = guid !== undefined ? guidNames.get(guid) : undefined;
+      if (name === undefined) continue;
+
+      for (const enemy of asArray(info.enemy_type_list).filter(isObject)) {
+        const em = asNumber(enemy.Em);
+        if (em === undefined) continue;
+        const key = `${em}:${randomId}`;
+        if (!map.has(key)) map.set(key, name);
+      }
+    }
+  }
+  return map;
+}
+
+/** 名称マスタ（guid → 日本語名）を索引化する。 */
+function messageNameMap(
+  data: Record<string, unknown>,
+  keys: readonly string[],
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const key of keys) {
+    const container = data[key];
+    if (!isObject(container)) continue;
+    for (const entry of asArray(container.entries).filter(isObject)) {
+      const guid = asString(entry.guid);
+      const ja = getEntryJa(entry);
+      if (guid !== undefined && ja !== undefined) map.set(guid, ja);
+    }
+  }
+  return map;
+}
+
+/**
+ * モンスター 1 体の部位破壊情報を作る。
+ *
+ * - 部位名と段階は `parts_break_reward` × `parts_type` から解決する。
+ * - 尻尾の切断は `parts_break_data.parts_loss_group_data_list` の部位が
+ *   `part_map` 上で「尾」を含む場合に「切断可」とする（ゲーム側の切断グループ）。
+ *   部位破壊報酬にも尻尾があるモンスターは同じ行にまとめる。
+ */
+function buildPartsBreak(
+  record: Record<string, unknown>,
+  em: number,
+  partNames: Map<string, string>,
+): PartBreakRow[] {
+  const rows = new Map<string, PartBreakRow>();
+  const reward = record.parts_break_reward;
+  if (isObject(reward)) {
+    for (const info of asArray(reward.enemy_parts_break_reward_infos).filter(isObject)) {
+      const randomId = isObject(info.broken_parts_type)
+        ? asNumber(info.broken_parts_type.RandomId)
+        : undefined;
+      if (randomId === undefined) continue;
+      const part = partNames.get(`${em}:${randomId}`);
+      if (part === undefined) continue;
+
+      const level = Math.max(
+        0,
+        ...asArray(info.parts_break_condition_list)
+          .filter(isObject)
+          .map((condition) => asNumber(condition.parts_break_level) ?? 0),
+      );
+      const existing = rows.get(part);
+      rows.set(part, {
+        part,
+        level: Math.max(existing?.level ?? 0, level) || null,
+        severable: existing?.severable ?? false,
+      });
+    }
+  }
+
+  if (hasTailLoss(record)) {
+    const existing = rows.get("尻尾");
+    if (existing) {
+      existing.severable = true;
+    } else {
+      rows.set("尻尾", { part: "尻尾", level: null, severable: true });
+    }
+  }
+
+  return [...rows.values()];
+}
+
+/** 切断可能な尻尾（`parts_loss_group_data_list`）を持つかどうか。 */
+function hasTailLoss(record: Record<string, unknown>): boolean {
+  const breakData = record.parts_break_data;
+  const partMap = isObject(record.collider_mapping) ? record.collider_mapping.part_map : undefined;
+  if (!isObject(breakData) || !isObject(partMap)) return false;
+
+  return asArray(breakData.parts_loss_group_data_list).some((group) => {
+    if (!isObject(group)) return false;
+    const index = asNumber(group.parts_group);
+    if (index === undefined) return false;
+    const names = partMap[String(index)];
+    return (
+      Array.isArray(names) && names.some((name) => typeof name === "string" && name.includes("尾"))
+    );
   });
 }
 

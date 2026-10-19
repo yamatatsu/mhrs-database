@@ -1,13 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import type { MonsterDetail } from "@/shared/lib";
 import { MonsterHitzoneTable } from "./MonsterHitzoneTable";
+import { MonsterPartBreakTable } from "./MonsterPartBreakTable";
 import { MonsterStatusTable } from "./MonsterStatusTable";
 
 interface MonsterDetailPageProps {
   detail: MonsterDetail;
 }
 
-/** モンスター詳細ページ。基本情報・肉質・状態異常耐性・図鑑説明を表示する。 */
+/** モンスター詳細ページ。基本情報・部位破壊・肉質・状態異常耐性・図鑑説明を表示する。 */
 export function MonsterDetailPage({ detail }: MonsterDetailPageProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -26,6 +27,12 @@ export function MonsterDetailPage({ detail }: MonsterDetailPageProps) {
       <Section title="基本情報">
         <BasicInfo detail={detail} />
       </Section>
+
+      {detail.parts_break && detail.parts_break.length > 0 ? (
+        <Section title="部位破壊">
+          <MonsterPartBreakTable detail={detail} />
+        </Section>
+      ) : null}
 
       <Section title="肉質">
         <MonsterHitzoneTable detail={detail} />
