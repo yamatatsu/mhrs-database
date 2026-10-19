@@ -16,7 +16,7 @@ export type MonsterStatusWeakness = "weak" | "resist" | "none";
 const WEAKNESS_BOUNDS: Readonly<Record<string, { weakMax: number; resistMin: number }>> = {
   paralyze_data: { weakMax: 130, resistMin: 300 },
   sleep_data: { weakMax: 100, resistMin: 250 },
-  stun_data: { weakMax: 120, resistMin: 200 },
+  stun_data: { weakMax: 100, resistMin: 200 },
   stamina_data: { weakMax: 150, resistMin: 375 },
   poison_data: { weakMax: 100, resistMin: 250 },
   blast_data: { weakMax: 40, resistMin: 120 },
