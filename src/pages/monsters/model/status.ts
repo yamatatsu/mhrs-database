@@ -10,7 +10,7 @@ export type MonsterStatusWeakness = "weak" | "resist" | "none";
 
 /**
  * 状態異常ごとの初期耐性の境界。
- * `weakMax` 以下なら弱点（○）、`resistMin` 以上なら効きにくい（✗）、
+ * `weakMax` 以下なら弱点（○）、`resistMin` 以上なら効きにくい（△）、
  * その間は標準として表示しない。値は状態異常ごとの耐性パターン分布から決めた。
  */
 const WEAKNESS_BOUNDS: Readonly<Record<string, { weakMax: number; resistMin: number }>> = {
@@ -50,7 +50,7 @@ export function formatMonsterStatusWeakness(weakness: MonsterStatusWeakness | un
     case "weak":
       return "○";
     case "resist":
-      return "✗";
+      return "△";
     case "none":
       return "無効";
     default:
