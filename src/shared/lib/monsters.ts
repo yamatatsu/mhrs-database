@@ -139,18 +139,29 @@ export interface MonsterDetail {
   readonly condition_damage_data?: Readonly<Record<string, MonsterCondition | undefined>>;
 }
 
-/** 肉質テーブルの列（キーは `MonsterMeatGroup` のフィールド名）。 */
+/**
+ * 肉質テーブルの列（キーは `MonsterMeatGroup` のフィールド名）。
+ * `group` はヒートマップの色分けルールを分けるための分類。
+ * `other` は物理・属性のどちらでもない値（気絶）で、ヒートマップの対象外。
+ */
 export const monsterHitzoneColumns = [
-  { key: "slash", label: "斬撃" },
-  { key: "strike", label: "打撃" },
-  { key: "shell", label: "砲撃" },
-  { key: "fire", label: "火" },
-  { key: "water", label: "水" },
-  { key: "ice", label: "氷" },
-  { key: "elect", label: "雷" },
-  { key: "dragon", label: "龍" },
-  { key: "piyo", label: "気絶" },
-] as const satisfies readonly { key: keyof MonsterMeatGroup; label: string }[];
+  { key: "slash", label: "斬撃", group: "physical" },
+  { key: "strike", label: "打撃", group: "physical" },
+  { key: "shell", label: "砲撃", group: "physical" },
+  { key: "fire", label: "火", group: "elemental" },
+  { key: "water", label: "水", group: "elemental" },
+  { key: "ice", label: "氷", group: "elemental" },
+  { key: "elect", label: "雷", group: "elemental" },
+  { key: "dragon", label: "龍", group: "elemental" },
+  { key: "piyo", label: "気絶", group: "other" },
+] as const satisfies readonly {
+  key: keyof MonsterMeatGroup;
+  label: string;
+  group: "physical" | "elemental" | "other";
+}[];
+
+/** 肉質テーブルの列分類（物理 / 属性 / その他）。 */
+export type MonsterHitzoneGroup = (typeof monsterHitzoneColumns)[number]["group"];
 
 /** 状態異常テーブルに表示する状態異常の一覧。 */
 export const monsterStatusTypes = [

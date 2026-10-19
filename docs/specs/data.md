@@ -703,6 +703,10 @@ public/data/monsters/
   - **肉質の表示**: `src/pages/monsters/model/hitzone.ts` の `buildMonsterHitzoneRows` が
     部位（`meat_map`）ごとに相（`meat_group_info`）を畳む。全相で同値なら単一値、
     1 つでも異なれば相の順に `/` 区切り（`formatMonsterHitzoneValue`）で表示する。
+    セルは `getMonsterHitzoneHeatLevel` の段階に応じてヒートマップ配色し、相で値が変わる
+    セルは最も高い値で段階を決める。物理（斬撃・打撃・砲撃）は 0 / 1–24 / 25–44 /
+    45–64 / 65+、属性（火・水・氷・雷・龍）は 0 / 1–9 / 10–19 / 20–29 / 30+ と、
+    別々のしきい値・配色を使う。気絶（`piyo`）はヒートマップ対象外の参考値として表示する。
   - **ルーティング**: `src/app/routes/monsters.index.tsx` → `/monsters`（一覧）、
     `src/app/routes/monsters.$monsterId.tsx` → `/monsters/$monsterId`（詳細）。
     サイドバーは「モンスター」1 項目のままで、一覧から詳細へ遷移する。

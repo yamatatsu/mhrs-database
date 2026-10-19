@@ -6,6 +6,7 @@ export {
   getMonsterPartLabel,
   type MonsterCondition,
   type MonsterDetail,
+  type MonsterHitzoneGroup,
   type MonsterIndexItem,
   type MonsterMeatGroup,
   type MonsterResistanceItem,

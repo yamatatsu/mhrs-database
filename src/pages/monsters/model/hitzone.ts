@@ -68,6 +68,35 @@ export function formatMonsterHitzoneValue(value: MonsterHitzoneValue): string {
   return value.kind === "single" ? String(value.value) : value.values.join("/");
 }
 
+/** 肉質値のヒートマップ段階。 */
+export type MonsterHitzoneHeatLevel = "none" | "low" | "medium" | "high" | "severe";
+
+/**
+ * ヒートマップのしきい値（`medium` / `high` / `severe` の下限）。
+ * 物理は 45 以上、属性は 20 以上が弱点の目安なので、別々のルールで色分けする。
+ */
+const heatThresholds = {
+  physical: { medium: 25, high: 45, severe: 65 },
+  elemental: { medium: 10, high: 20, severe: 30 },
+} as const;
+
+/**
+ * 相によって値が変わるセルは、最も高い値（その部位を狙う価値があるか）で段階を決める。
+ * 物理（斬撃・打撃・砲撃）と属性（火・水・氷・雷・龍）でしきい値が異なる。
+ */
+export function getMonsterHitzoneHeatLevel(
+  value: MonsterHitzoneValue,
+  group: keyof typeof heatThresholds,
+): MonsterHitzoneHeatLevel {
+  const peak = value.kind === "single" ? value.value : Math.max(...value.values);
+  if (peak <= 0) return "none";
+  const { medium, high, severe } = heatThresholds[group];
+  if (peak < medium) return "low";
+  if (peak < high) return "medium";
+  if (peak < severe) return "high";
+  return "severe";
+}
+
 /** いずれかの部位で相により値が変わるか（注記の表示判定に使う）。 */
 export function hasMonsterHitzoneVariation(rows: readonly MonsterHitzoneRow[]): boolean {
   return rows.some((row) => row.values.some((value) => value.kind === "multiple"));
