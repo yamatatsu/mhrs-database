@@ -83,7 +83,7 @@ export function WeaponDetailDrawer({
         showOverlay={false}
         className="data-[side=right]:w-full data-[side=right]:sm:max-w-md"
       >
-        <SheetHeader className="pr-10">
+        <SheetHeader className="pr-14">
           <div className="flex flex-wrap items-center gap-2">
             <SheetTitle>{detail.name ?? "不明な武器"}</SheetTitle>
             <Badge variant="secondary">レア {detail.rare_type}</Badge>
