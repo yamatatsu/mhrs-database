@@ -32,6 +32,7 @@ function WeaponTypeRoute() {
   return (
     <>
       <WeaponTypePage
+        key={weaponType.id}
         weaponType={weaponType}
         list={list}
         selectedWeaponId={detailMatch ? Number(detailMatch.weaponId) : undefined}
