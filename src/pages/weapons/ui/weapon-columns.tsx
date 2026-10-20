@@ -1,6 +1,6 @@
 import { createColumnHelper } from "@tanstack/react-table";
 import { getWeaponElementLabel, type WeaponIndexItem, type WeaponType } from "@/shared/lib";
-import { DataTableColumnHeader, type DataTableFeatures } from "@/shared/ui";
+import { type DataTableFeatures } from "@/shared/ui";
 import { SharpnessBar } from "./SharpnessBar";
 
 /**
@@ -15,21 +15,20 @@ export function getCoreColumns<TData extends WeaponIndexItem>() {
   return columnHelper.columns([
     columnHelper.accessor((row) => row.name, {
       id: "name",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="名前" />,
+      header: "名前",
+      enableSorting: false,
       cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
     }),
     columnHelper.accessor((row) => row.atk, {
       id: "atk",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="攻撃力" className="justify-end" />
-      ),
+      header: () => <div className="text-right">攻撃力</div>,
+      enableSorting: false,
       cell: ({ getValue }) => <div className="text-right">{getValue()}</div>,
     }),
     columnHelper.accessor((row) => row.critical_rate, {
       id: "critical_rate",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="会心率" className="justify-end" />
-      ),
+      header: () => <div className="text-right">会心率</div>,
+      enableSorting: false,
       cell: ({ getValue }) => <div className="text-right">{getValue()}%</div>,
     }),
   ]);
