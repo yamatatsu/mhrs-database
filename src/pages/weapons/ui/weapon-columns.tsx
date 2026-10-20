@@ -4,7 +4,7 @@ import { DataTableColumnHeader, type DataTableFeatures } from "@/shared/ui";
 import { SharpnessBar } from "./SharpnessBar";
 
 /**
- * ID / 名前 / レア度 / 攻撃力 / 会心率。全武器種で共通のカラム。
+ * 名前 / 攻撃力 / 会心率。全武器種で共通のカラム。
  *
  * カラムは `TData extends WeaponIndexItem` に対して定義し、武器種固有フィールドを持つ
  * 拡張型（例: `HornIndexItem`）でもそのまま使えるようにする。
@@ -13,29 +13,10 @@ export function getCoreColumns<TData extends WeaponIndexItem>() {
   const columnHelper = createColumnHelper<DataTableFeatures, TData>();
 
   return columnHelper.columns([
-    columnHelper.accessor((row) => row.id, {
-      id: "id",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />,
-      cell: ({ getValue }) => <span className="text-muted-foreground">{getValue()}</span>,
-    }),
     columnHelper.accessor((row) => row.name, {
       id: "name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="名前" />,
-      cell: ({ row }) => (
-        <span
-          className="font-medium"
-          style={{ paddingLeft: `${(row.original.path.length - 1) * 1}rem` }}
-        >
-          {row.original.name}
-        </span>
-      ),
-    }),
-    columnHelper.accessor((row) => row.rarity, {
-      id: "rarity",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="レア度" className="justify-end" />
-      ),
-      cell: ({ getValue }) => <div className="text-right">{getValue()}</div>,
+      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
     }),
     columnHelper.accessor((row) => row.atk, {
       id: "atk",

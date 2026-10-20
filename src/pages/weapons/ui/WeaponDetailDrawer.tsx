@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { cn } from "cn";
 import {
   getHyakuryuSkillName,
   getItemName,
@@ -16,9 +17,9 @@ import {
   type WeaponIndexItem,
   type WeaponRecipe,
   type WeaponRecipes,
-  type WeaponTree,
   type WeaponType,
 } from "@/shared/lib";
+import { buildWeaponTree, type WeaponTreeNode } from "../model/derivation";
 import {
   Badge,
   Sheet,
@@ -38,7 +39,7 @@ import { SharpnessBar } from "./SharpnessBar";
 interface WeaponDetailDrawerProps {
   weaponType: WeaponType;
   detail: WeaponDetail;
-  /** 派生ツリーの名称解決に使う、同じ武器種の一覧。 */
+  /** 派生ツリーの組み立てに使う、同じ武器種の一覧。 */
   list: readonly WeaponIndexItem[];
   itemNames: ItemNameTable;
   /** 百竜スキル名の解決に使う参照テーブル。 */
@@ -62,6 +63,7 @@ export function WeaponDetailDrawer({
   const indexed = indexById.get(detail.id);
   const elements = indexed?.elements ?? getWeaponDetailElements(detail);
   const sharpness = indexed?.sharpness_val_list ?? detail.sharpness_val_list ?? [];
+  const derivationTree = useMemo(() => buildWeaponTree(list, detail.id), [list, detail.id]);
 
   return (
     <Sheet
@@ -100,7 +102,11 @@ export function WeaponDetailDrawer({
           <AmmoSection detail={detail} />
           <HyakuryuSection detail={detail} hyakuryuSkillNames={hyakuryuSkillNames} />
           <RecipesSection recipes={detail.recipes} itemNames={itemNames} />
-          <DerivationSection tree={detail.tree} indexById={indexById} weaponType={weaponType} />
+          {derivationTree && derivationTree.children.length > 0 ? (
+            <Section title="派生ツリー">
+              <DerivationTree tree={derivationTree} currentId={detail.id} weaponType={weaponType} />
+            </Section>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>
@@ -365,56 +371,70 @@ function RecipesSection({
   );
 }
 
-function WeaponLink({ weapon, weaponType }: { weapon: WeaponIndexItem; weaponType: WeaponType }) {
+function DerivationTree({
+  tree,
+  currentId,
+  weaponType,
+}: {
+  tree: WeaponTreeNode;
+  currentId: number;
+  weaponType: WeaponType;
+}) {
   return (
-    <Link
-      to="/weapons/$weaponType/$weaponId"
-      params={{ weaponType: weaponType.id, weaponId: String(weapon.id) }}
-      resetScroll={false}
-      className="text-sm text-primary hover:underline"
-    >
-      {weapon.name}
-    </Link>
+    <ul className="flex flex-col gap-0.5">
+      <DerivationTreeNode node={tree} currentId={currentId} weaponType={weaponType} />
+    </ul>
   );
 }
 
-function DerivationSection({
-  tree,
-  indexById,
+/**
+ * 派生ツリーの 1 ノード。現在表示中の武器を強調し、各ノードから
+ * その武器の詳細へ移動できるようにする。
+ */
+function DerivationTreeNode({
+  node,
+  currentId,
   weaponType,
 }: {
-  tree: WeaponTree | null;
-  indexById: ReadonlyMap<number, WeaponIndexItem>;
+  node: WeaponTreeNode;
+  currentId: number;
   weaponType: WeaponType;
 }) {
-  if (!tree) return null;
-  const prev = tree.prev !== null ? indexById.get(tree.prev) : undefined;
-  const next = tree.next.flatMap((id) => {
-    const weapon = indexById.get(id);
-    return weapon ? [weapon] : [];
-  });
-  if (!prev && next.length === 0) return null;
+  const isCurrent = node.weapon.id === currentId;
 
   return (
-    <Section title="派生">
-      {prev ? (
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">1 つ前</span>
-          <WeaponLink weapon={prev} weaponType={weaponType} />
-        </div>
+    <li>
+      <Link
+        to="/weapons/$weaponType/$weaponId"
+        params={{ weaponType: weaponType.id, weaponId: String(node.weapon.id) }}
+        resetScroll={false}
+        aria-current={isCurrent ? "page" : undefined}
+        className={cn(
+          "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors hover:bg-accent",
+          isCurrent && "bg-accent font-medium",
+        )}
+      >
+        <span
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            isCurrent ? "bg-primary" : "bg-transparent",
+          )}
+          aria-hidden="true"
+        />
+        <span className="min-w-0 break-words">{node.weapon.name}</span>
+      </Link>
+      {node.children.length > 0 ? (
+        <ul className="ml-1.5 flex flex-col gap-0.5 border-l border-border pl-1.5">
+          {node.children.map((child) => (
+            <DerivationTreeNode
+              key={child.weapon.id}
+              node={child}
+              currentId={currentId}
+              weaponType={weaponType}
+            />
+          ))}
+        </ul>
       ) : null}
-      {next.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">派生先</span>
-          <ul className="flex flex-col gap-0.5">
-            {next.map((weapon) => (
-              <li key={weapon.id}>
-                <WeaponLink weapon={weapon} weaponType={weaponType} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </Section>
+    </li>
   );
 }
